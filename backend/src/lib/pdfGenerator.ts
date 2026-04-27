@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import qrcode from 'qrcode';
+import chromium from '@sparticuz/chromium';
 
 export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string) => {
   const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
@@ -276,7 +277,17 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     </html>
   `;
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  let browser;
+  if (process.env.NODE_ENV === 'production') {
+    browser = await puppeteer.launch({
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless === true || chromium.headless === 'new' ? true : chromium.headless,
+    });
+  } else {
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  }
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: 'networkidle0' });
   const pdfBuffer = await page.pdf({
