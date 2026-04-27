@@ -280,7 +280,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
   let browser;
   if (process.env.NODE_ENV === 'production') {
     browser = await puppeteer.launch({
-      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process'],
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: true,
@@ -289,7 +289,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   }
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
+  await page.setContent(html, { waitUntil: 'networkidle2', timeout: 30000 });
   const pdfBuffer = await page.pdf({
     format: 'A4',
     printBackground: true,
