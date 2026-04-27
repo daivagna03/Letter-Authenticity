@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  role          Role     @default(MLA)
+  email         String   @unique
+  mlaMpId       String?  @unique
+  passwordHash  String
+  
+  // Letterhead configuration fields
+  designationType String?
+  houseType     String?
+  constituency  String?
+  state         String?
+  defaultAddress String?
+  
+  letters       Letter[]
+  createdAt     DateTime @default(now())
+}
+
+enum Role {
+  MLA
+  ASSISTANT
+  ADMIN
+}
+
+model Letter {
+  id              String    @id @default(uuid())
+  senderId        String
+  sender          User      @relation(fields: [senderId], references: [id])
+  refNo           String    @unique
+  date            DateTime
+  recipientName   String
+  recipientAddress String
+  subject         String
+  body            String    @db.Text
+  signatureBlock  String
+  copyTo          String?   @db.Text
+  hash            String    
+  qrToken         String    @unique 
+  scanLogs        ScanLog[]
+  createdAt       DateTime  @default(now())
+}
+
+model ScanLog {
+  id          String   @id @default(uuid())
+  letterId    String
+  letter      Letter   @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  scannedAt   DateTime @default(now())
+  ipAddress   String?
+  location    String?  
+  deviceInfo  String?  
+}
