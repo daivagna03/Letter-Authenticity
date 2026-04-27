@@ -1,0 +1,223 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
+import api from '@/lib/api';
+import CreateLetterModal from '@/components/CreateLetterModal';
+import ProfileModal from '@/components/ProfileModal';
+
+export default function DashboardPage() {
+  const { user, logout } = useAuth();
+  const { notifications } = useNotifications();
+  const [letters, setLetters] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLetters = async () => {
+    try {
+      const res = await api.get('/letters');
+      setLetters(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLetters();
+  }, []);
+
+  const downloadPDF = async (letterId: string, refNo: string) => {
+    try {
+      const res = await api.get(`/letters/${letterId}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Letter_${refNo.replace(/\//g, '_')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to download PDF');
+    }
+  };
+
+  const deleteLetter = async (id: string, refNo: string) => {
+    if (!confirm(`Are you sure you want to delete letter ${refNo}? This action cannot be undone.`)) return;
+    try {
+      await api.delete(`/letters/${id}`);
+      setLetters(letters.filter((l: any) => l.id !== id));
+    } catch (err) {
+      alert('Failed to delete letter');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar */}
+      <aside className="w-72 bg-slate-900 text-white flex flex-col p-6 fixed h-full">
+        <div className="flex items-center gap-3 mb-10 px-2">
+          <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl">V</div>
+          <h1 className="font-bold text-xl tracking-tight">DocVerify</h1>
+        </div>
+        
+        <nav className="flex-1 space-y-2">
+          <a href="#" className="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-indigo-300 font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Dashboard
+          </a>
+          <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl text-slate-400 hover:text-indigo-300 font-medium transition-all w-full text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Profile Settings
+          </button>
+        </nav>
+
+        <div className="pt-6 border-t border-white/10">
+          <div className="px-4 mb-4">
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">User Info</p>
+            <p className="font-semibold mt-1">Shri {user?.name}</p>
+            <p className="text-sm text-slate-400">{user?.role}</p>
+          </div>
+          <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-72 p-10">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-10">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900">Communication Dashboard</h2>
+              <p className="text-slate-500 mt-1">Manage and track your official correspondence</p>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              New Letter
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Letters List */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-bold text-slate-800">Recent Letters</h3>
+                  <span className="text-xs font-bold bg-slate-100 px-2 py-1 rounded text-slate-500">{letters.length} Total</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {loading ? (
+                    <div className="p-10 text-center text-slate-400 italic">Loading letters...</div>
+                  ) : letters.length === 0 ? (
+                    <div className="p-10 text-center text-slate-400 italic">No letters created yet.</div>
+                  ) : (
+                    letters.map((letter: any) => (
+                      <div key={letter.id} className="p-6 hover:bg-slate-50 transition-all flex justify-between items-center group">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{letter.refNo}</span>
+                            <span className="text-xs text-slate-400">• {new Date(letter.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-all">{letter.subject}</h4>
+                          <p className="text-sm text-slate-500 truncate max-w-md">To: Shri {letter.recipientName}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right mr-4">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Scans</p>
+                            <p className="font-bold text-slate-700">{letter._count?.scanLogs || 0}</p>
+                          </div>
+                          <button 
+                            onClick={() => downloadPDF(letter.id, letter.refNo)}
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                            title="Download PDF"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={() => deleteLetter(letter.id, letter.refNo)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete Letter"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Notifications Sidebar */}
+            <div className="space-y-8">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                  Real-time Activity
+                </h3>
+                <div className="space-y-4">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No recent activity detected.</p>
+                  ) : (
+                    notifications.map((notif, i) => (
+                      <div key={i} className={`p-4 rounded-xl border-l-4 shadow-sm ${notif.type === 'WARNING' ? 'bg-orange-50 border-orange-400' : 'bg-blue-50 border-blue-400'}`}>
+                        <p className={`text-xs font-bold mb-1 ${notif.type === 'WARNING' ? 'text-orange-700' : 'text-blue-700'}`}>
+                          {notif.type === 'WARNING' ? '⚠️ SECURITY ALERT' : 'ℹ️ NOTIFICATION'}
+                        </p>
+                        <p className="text-sm text-slate-800 font-medium leading-snug">{notif.message}</p>
+                        <p className="text-[10px] text-slate-400 mt-2 font-mono">{new Date(notif.timestamp).toLocaleTimeString()}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-xl">
+                <h4 className="font-bold mb-2">QR Authentication</h4>
+                <p className="text-xs text-indigo-200 leading-relaxed">
+                  Every letter you generate contains a unique cryptographic hash. Scanners can verify the integrity of the content by scanning the embedded QR code.
+                </p>
+                <div className="mt-4 pt-4 border-t border-indigo-800 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-indigo-400">
+                  <span>SHA-256 Enabled</span>
+                  <span>JWT Signed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <CreateLetterModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchLetters}
+      />
+
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
+    </div>
+  );
+}
