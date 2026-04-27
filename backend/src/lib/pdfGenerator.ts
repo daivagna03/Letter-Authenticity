@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer';
 import qrcode from 'qrcode';
 import chromium from '@sparticuz/chromium';
+import fs from 'fs';
+import path from 'path';
 
 export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string) => {
   const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
@@ -8,6 +10,9 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     margin: 1,
     width: 150,
   });
+
+  const emblemSvg = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'emblem.svg'), 'utf8');
+  const emblemBase64 = `data:image/svg+xml;base64,${Buffer.from(emblemSvg).toString('base64')}`;
 
   const sender = letter.sender;
   const senderName = sender.name ? `Shri ${sender.name}` : '';
@@ -31,6 +36,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     <!DOCTYPE html>
     <html>
     <head>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
       <style>
         html, body {
           margin: 0;
@@ -45,7 +51,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-          font-family: 'Times New Roman', Times, serif;
+          font-family: 'Times New Roman', 'Noto Sans Devanagari', Times, serif;
           color: #000;
           font-size: 13px;
         }
@@ -77,7 +83,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         .header-left .name {
           font-size: 18px;
           font-weight: bold;
-          font-family: 'Times New Roman', Times, serif;
+          font-family: 'Times New Roman', 'Noto Sans Devanagari', Times, serif;
           margin-bottom: 3px;
         }
         .header-left .info-line {
@@ -146,7 +152,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
           text-align: justify;
           line-height: 1.6;
           margin-bottom: 12px;
-          font-family: "Times New Roman", serif;
+          font-family: 'Times New Roman', 'Noto Sans Devanagari', serif;
           page-break-inside: avoid;
         }
 
@@ -197,7 +203,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
           <tr>
             <td style="padding: 0; border: none;">
               <div style="height: 60px; text-align: center; padding-top: 10px;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" style="height: 40px; width: auto;" alt="National Emblem">
+                <img src="${emblemBase64}" style="height: 40px; width: auto;" alt="National Emblem">
               </div>
             </td>
           </tr>
@@ -215,7 +221,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
           </div>
 
           <div class="header-center">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="National Emblem">
+            <img src="${emblemBase64}" alt="National Emblem">
             <div class="motto">सत्यमेव जयते</div>
           </div>
 
