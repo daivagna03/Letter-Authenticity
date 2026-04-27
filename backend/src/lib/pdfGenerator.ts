@@ -283,7 +283,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
       args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless === true || chromium.headless === 'new' ? true : chromium.headless,
+      headless: true,
     });
   } else {
     browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
