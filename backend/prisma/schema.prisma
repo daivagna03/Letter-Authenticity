@@ -53,6 +53,7 @@ model Letter {
   copyTo          String?   @db.Text
   hash            String    
   qrToken         String    @unique 
+  pdfData         Bytes?
   scanLogs        ScanLog[]
   createdAt       DateTime  @default(now())
 }

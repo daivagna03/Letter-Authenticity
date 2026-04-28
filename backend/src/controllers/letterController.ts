@@ -41,6 +41,35 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
     const tempId = (Date.now().toString(36) + crypto.randomBytes(8).toString('hex')).substring(0, 24);
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
+    // Fetch sender details needed for PDF generation
+    const sender = await prisma.user.findUnique({
+      where: { id: senderId },
+      select: SENDER_SELECT_FIELDS,
+    });
+
+    // Pre-generate the PDF now so downloads are instant
+    let pdfData: Buffer | null = null;
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const letterForPdf = {
+        id: tempId,
+        refNo,
+        date: new Date(date),
+        recipientName,
+        recipientAddress,
+        subject,
+        body,
+        signatureBlock,
+        copyTo,
+        hash,
+        qrToken,
+        sender,
+      };
+      pdfData = Buffer.from(await generateLetterPDF(letterForPdf, qrToken, frontendUrl));
+    } catch (pdfErr) {
+      console.error('[PDF] Pre-generation failed (will retry on download):', pdfErr);
+    }
+
     const letter = await prisma.letter.create({
       data: {
         id: tempId,
@@ -55,6 +84,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         copyTo,
         hash,
         qrToken,
+        pdfData: pdfData ? new Uint8Array(pdfData) : undefined,
       },
     });
 
@@ -205,11 +235,28 @@ export const getLetterPDF = async (req: AuthRequest, res: Response): Promise<voi
     });
     if (!letter) { res.status(404).json({ message: 'Letter not found' }); return; }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    console.log('[PDF] Using FRONTEND_URL:', frontendUrl);
-    const pdfBuffer = await generateLetterPDF(letter, letter.qrToken, frontendUrl);
+    const filename = `Letter_${letter.refNo.replace(/\//g, '_')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Letter_${letter.refNo.replace(/\//g, '_')}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+    // Serve pre-generated PDF if available (instant)
+    if (letter.pdfData && letter.pdfData.length > 0) {
+      console.log('[PDF] Serving cached PDF for letter:', id);
+      res.send(letter.pdfData);
+      return;
+    }
+
+    // Fallback: generate on-demand for older letters without cached PDF
+    console.log('[PDF] No cached PDF found, generating on-demand for letter:', id);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const pdfBuffer = await generateLetterPDF(letter, letter.qrToken, frontendUrl);
+
+    // Cache it for next time
+    await prisma.letter.update({
+      where: { id },
+      data: { pdfData: Buffer.from(pdfBuffer) },
+    });
+
     res.send(pdfBuffer);
   } catch (error) {
     console.error('PDF Generation Error:', error);
