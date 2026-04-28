@@ -1,85 +1,18 @@
-import puppeteer, { Browser } from 'puppeteer';
+import PDFDocument from 'pdfkit';
 import qrcode from 'qrcode';
-// @ts-ignore
-import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 
-// ── Singleton browser ──────────────────────────────────────────────────────────
-// Launch Chromium once and reuse the instance for every PDF request.
-// This eliminates the 40-60 s cold-start that happens when a new browser
-// process is spawned on every single download.
-let _browser: Browser | null = null;
-let _browserPromise: Promise<Browser> | null = null;
-
-async function getBrowser(): Promise<Browser> {
-  // Already running and connected — reuse it
-  if (_browser?.connected) return _browser;
-
-  // Another call is already launching — wait for it
-  if (_browserPromise) return _browserPromise;
-
-  _browserPromise = (async () => {
-    console.log('[PDF] Launching browser (cold start)…');
-
-    const launchArgs = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-extensions',
-      '--single-process',
-      '--no-zygote',
-    ];
-
-    let browser: Browser;
-    if (process.env.NODE_ENV === 'production') {
-      browser = await puppeteer.launch({
-        args: [...chromium.args, ...launchArgs],
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: true,
-      });
-    } else {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: launchArgs,
-      });
-    }
-
-    _browser = browser;
-
-    // If the browser crashes / is killed, clear state so next call relaunches
-    browser.on('disconnected', () => {
-      console.log('[PDF] Browser disconnected — will relaunch on next request');
-      _browser = null;
-      _browserPromise = null;
-    });
-
-    console.log('[PDF] Browser ready');
-    return browser;
-  })();
-
-  return _browserPromise;
-}
-
-// Call this once at server startup to warm the browser before any request arrives
-export async function warmBrowser(): Promise<void> {
-  await getBrowser();
-}
-// ──────────────────────────────────────────────────────────────────────────────
-
-export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string) => {
+export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string): Promise<Buffer> => {
+  // ── Prepare assets ──────────────────────────────────────────────────────────
   const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
-  const qrCodeDataUrl = await qrcode.toDataURL(verifyUrl, {
-    margin: 1,
-    width: 150,
-  });
+  const qrPngBuffer = await qrcode.toBuffer(verifyUrl, { margin: 1, width: 150 });
 
-  const emblemSvg = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'emblem.svg'), 'utf8');
-  const emblemBase64 = `data:image/svg+xml;base64,${Buffer.from(emblemSvg).toString('base64')}`;
+  const emblemPath = path.join(process.cwd(), 'src', 'lib', 'emblem.png');
+  const hasEmblem = fs.existsSync(emblemPath);
 
-  const sender = letter.sender;
+  // ── Extract sender info ─────────────────────────────────────────────────────
+  const sender = letter.sender || {};
   const senderName = sender.name ? `Shri ${sender.name}` : '';
   const designation = sender.designation || '';
   const department = sender.department || '';
@@ -87,280 +20,177 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
   const defaultAddress = sender.defaultAddress || '';
   const senderEmail = sender.email || '';
 
-  // Parse address into structured lines for a clean, professional look
-  let addressHtml = '';
-  if (defaultAddress) {
-    const addressLines = defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
-    addressHtml = addressLines.map((line: string, idx: number) =>
-      `<div style="line-height: 1.6;">${line}${idx < addressLines.length - 1 ? ',' : ''}</div>`
-    ).join('');
+  const addressLines = defaultAddress
+    ? defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
+    : [];
+
+  const bodyParagraphs = letter.body
+    ? letter.body.split('\n').filter((p: string) => p.trim() !== '')
+    : [];
+
+  // ── Page constants (A4 = 595.28 × 841.89 pt) ───────────────────────────────
+  const PW = 595.28;                       // page width
+  const ML = 42.52;                        // 15 mm left margin
+  const MR = 42.52;                        // 15 mm right margin
+  const MT = 22.68;                        // 8 mm top margin
+  const MB = 56.69;                        // 20 mm bottom margin
+  const CW = PW - ML - MR;                // content width
+
+  // ── Create document ─────────────────────────────────────────────────────────
+  const doc = new PDFDocument({
+    size: 'A4',
+    margins: { top: MT, bottom: MB, left: ML, right: MR },
+    bufferPages: true,
+  });
+
+  const chunks: Buffer[] = [];
+  doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+
+  let y = MT;
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  HEADER
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  // ── Left: sender name + details ─────────────────────────────────────────────
+  const hlW = 190;
+  doc.font('Times-Bold').fontSize(18).text(senderName, ML, y, { width: hlW });
+  let leftY = y + doc.heightOfString(senderName, { width: hlW }) + 2;
+
+  doc.font('Times-Italic').fontSize(13);
+  for (const line of [designation, department, organization].filter(Boolean)) {
+    doc.text(line, ML, leftY, { width: hlW });
+    leftY += 16;
   }
-  const emailLine = senderEmail ? `<div style="margin-top:8px;">E-mail: ${senderEmail}</div>` : '';
 
-  // Parse body into paragraphs
-  const parsedBody = letter.body ? letter.body.split('\n').filter((p: string) => p.trim() !== '').map((p: string) => `<p>${p}</p>`).join('') : '';
-
-  // NOTE: No external font URLs — they cause 20-30 s network hangs in production.
-  // Times New Roman is available natively in the Chromium sandbox.
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        html, body {
-          margin: 0;
-          padding: 0;
-        }
-
-        @page { 
-          size: A4; 
-          margin: 8mm 15mm 20mm 15mm; 
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-          font-family: 'Times New Roman', Times, serif;
-          color: #000;
-          font-size: 13px;
-        }
-
-        .page {
-          /* Removed page-break-after: always; to prevent extra blank pages */
-        }
-
-        .page-header {
-          margin-bottom: 20px;
-          margin-top: 10px;
-          padding-top: 0;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          border-bottom: 1px solid #999;
-          padding-bottom: 10px;
-        }
-
-        .page-content {
-          page-break-inside: auto;
-          margin-top: 0;
-        }
-
-        .header-left {
-          flex: 1;
-          text-align: left;
-        }
-        .header-left .name {
-          font-size: 18px;
-          font-weight: bold;
-          font-family: 'Times New Roman', Times, serif;
-          margin-bottom: 3px;
-        }
-        .header-left .info-line {
-          font-size: 13px;
-          font-style: italic;
-          line-height: 1.4;
-        }
-        .header-center {
-          flex-shrink: 0;
-          text-align: center;
-          padding: 0 20px;
-        }
-        .header-center img {
-          width: 65px;
-          height: auto;
-        }
-        .header-center .motto {
-          font-size: 11px;
-          font-weight: bold;
-          color: #333;
-          margin-top: 2px;
-        }
-        .header-right {
-          flex: 1;
-          display: flex;
-          justify-content: flex-end;
-          font-size: 13px;
-          line-height: 1.4;
-          margin-top: 2px;
-        }
-        .header-right-inner {
-          text-align: right;
-          max-width: 250px;
-        }
-
-        /* === Meta === */
-        .meta-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-        .recipient-block {
-          line-height: 1.6;
-        }
-        .date-block {
-          white-space: nowrap;
-        }
-
-        /* === Body === */
-        .subject-line {
-          font-weight: bold;
-          margin-bottom: 15px;
-          font-size: 14px;
-        }
-        .salutation {
-          margin-bottom: 12px;
-          font-size: 14px;
-        }
-
-        .content {
-          text-align: justify;
-          position: relative;
-        }
-        .content p {
-          text-align: justify;
-          line-height: 1.6;
-          margin-bottom: 12px;
-          font-family: 'Times New Roman', serif;
-          page-break-inside: avoid;
-        }
-
-        /* === Footer Row === */
-        .footer-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-top: 20px;
-          page-break-inside: avoid;
-          page-break-before: avoid;
-          break-before: avoid;
-        }
-
-        /* === Signature === */
-        .signature-block {
-          font-size: 14px;
-        }
-        .signature-space {
-          height: 50px;
-        }
-        .signature-name {
-          font-weight: bold;
-        }
-        .signature-title {
-          font-size: 13px;
-        }
-
-        /* === QR Code === */
-        .qr {
-          width: 70px;
-          text-align: center;
-          font-size: 9px;
-          font-family: Arial, sans-serif;
-          color: #666;
-        }
-        .qr img {
-          width: 70px;
-          height: 70px;
-          display: block;
-          margin: 0 auto 3px auto;
-        }
-      </style>
-    </head>
-    <body>
-      <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; padding: 0;">
-        <thead style="display: table-header-group;">
-          <tr>
-            <td style="padding: 0; border: none;">
-              <div class="page-header" style="background-color: #fff; position: relative; z-index: 10;">
-                <div class="header-left">
-                  <div class="name">${senderName}</div>
-                  <div class="info-line">${designation}</div>
-                  <div class="info-line">${department}</div>
-                  <div class="info-line">${organization}</div>
-                </div>
-
-                <div class="header-center">
-                  <img src="${emblemBase64}" alt="National Emblem">
-                  <div class="motto">सत्यमेव जयते</div>
-                </div>
-
-                <div class="header-right">
-                  <div class="header-right-inner">
-                    ${addressHtml}
-                    ${emailLine}
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="padding: 0; border: none;">
-              <div class="page">
-                <div class="page-content content">
-                  <!-- To / Date -->
-                  <div class="meta-row">
-                    <div class="recipient-block">
-                      To,<br>
-                      <strong>Shri ${letter.recipientName}</strong><br>
-                      ${letter.recipientAddress.replace(/\n/g, '<br>')}
-                    </div>
-                    <div class="date-block">
-                      Date: ${new Date(letter.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-')}
-                    </div>
-                  </div>
-
-                  <!-- Subject -->
-                  <div class="subject-line">
-                    Subject: ${letter.subject}
-                  </div>
-
-                  <!-- Salutation -->
-                  <div class="salutation">Sir,</div>
-
-                  <!-- Body -->
-                  <div>${parsedBody}</div>
-
-                  <!-- Footer Row -->
-                  <div class="footer-row">
-                    <!-- Signature -->
-                    <div class="signature-block">
-                      <div>Yours sincerely,</div>
-                      <div class="signature-space"></div>
-                      <div class="signature-name">${senderName}</div>
-                      <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
-                    </div>
-
-                    <!-- QR Code -->
-                    <div class="qr">
-                      <img src="${qrCodeDataUrl}" alt="Verification QR Code">
-                      <div>Scan to Verify</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `;
-
-  const browser = await getBrowser();
-  const page = await browser.newPage();
-
-  try {
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '8mm', bottom: '20mm', left: '15mm', right: '15mm' }
-    });
-    return pdfBuffer;
-  } finally {
-    // Always close the page but keep the browser alive for the next request
-    await page.close();
+  // ── Center: emblem ──────────────────────────────────────────────────────────
+  const emblemW = 55;
+  const emblemX = (PW - emblemW) / 2;
+  if (hasEmblem) {
+    doc.image(emblemPath, emblemX, y, { width: emblemW });
   }
+  const mottoY = y + emblemW + 4;
+  doc.font('Times-Bold').fontSize(9);
+  doc.text('Satyameva Jayate', 0, mottoY, { width: PW, align: 'center' });
+
+  // ── Right: address ──────────────────────────────────────────────────────────
+  const hrW = 200;
+  const hrX = PW - MR - hrW;
+  doc.font('Times-Roman').fontSize(13);
+  let rightY = y;
+  for (let i = 0; i < addressLines.length; i++) {
+    const txt = i < addressLines.length - 1 ? `${addressLines[i]},` : addressLines[i];
+    doc.text(txt, hrX, rightY, { width: hrW, align: 'right' });
+    rightY += 16;
+  }
+  if (senderEmail) {
+    rightY += 4;
+    doc.text(`E-mail: ${senderEmail}`, hrX, rightY, { width: hrW, align: 'right' });
+    rightY += 16;
+  }
+
+  // ── Header divider line ─────────────────────────────────────────────────────
+  const headerBottom = Math.max(leftY, rightY, mottoY + 14) + 5;
+  doc.moveTo(ML, headerBottom)
+     .lineTo(PW - MR, headerBottom)
+     .strokeColor('#999999')
+     .lineWidth(0.5)
+     .stroke();
+
+  y = headerBottom + 15;
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  TO / DATE ROW
+  // ══════════════════════════════════════════════════════════════════════════════
+  const toDateY = y;
+  doc.font('Times-Roman').fontSize(14);
+  doc.text('To,', ML, y);
+  y += 18;
+  doc.font('Times-Bold').fontSize(14);
+  doc.text(`Shri ${letter.recipientName}`, ML, y);
+  y += 18;
+  doc.font('Times-Roman').fontSize(14);
+  const recipientLines = (letter.recipientAddress || '').split('\n');
+  for (const line of recipientLines) {
+    if (line.trim()) {
+      doc.text(line.trim(), ML, y, { width: CW * 0.6 });
+      y += 16;
+    }
+  }
+
+  // Date (right-aligned, same row as "To,")
+  const dateStr = new Date(letter.date)
+    .toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })
+    .replace(/\//g, '-');
+  doc.font('Times-Roman').fontSize(14);
+  doc.text(`Date: ${dateStr}`, ML, toDateY, { width: CW, align: 'right' });
+
+  y += 10;
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  SUBJECT
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.font('Times-Bold').fontSize(14);
+  doc.text(`Subject: ${letter.subject}`, ML, y, { width: CW });
+  y = doc.y + 15;
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  SALUTATION
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.font('Times-Roman').fontSize(14);
+  doc.text('Sir,', ML, y);
+  y = doc.y + 12;
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  BODY
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.font('Times-Roman').fontSize(13);
+  for (const paragraph of bodyParagraphs) {
+    // Check if we need a new page
+    const pHeight = doc.heightOfString(paragraph, { width: CW, align: 'justify', lineGap: 4 });
+    if (y + pHeight > 841.89 - MB - 20) {
+      doc.addPage();
+      y = MT;
+    }
+    doc.text(paragraph, ML, y, { width: CW, align: 'justify', lineGap: 4 });
+    y = doc.y + 12;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  FOOTER — signature + QR
+  // ══════════════════════════════════════════════════════════════════════════════
+  const footerHeight = 130;
+  if (y + footerHeight > 841.89 - MB) {
+    doc.addPage();
+    y = MT;
+  }
+
+  y += 20;
+
+  // Signature block
+  doc.font('Times-Roman').fontSize(14);
+  doc.text('Yours sincerely,', ML, y);
+  y += 55; // space for signature
+  doc.font('Times-Bold').fontSize(14);
+  doc.text(senderName, ML, y);
+  y += 18;
+  doc.font('Times-Roman').fontSize(13);
+  const sigTitle = designation + (organization ? `, ${organization}` : '');
+  if (sigTitle) doc.text(sigTitle, ML, y);
+
+  // QR code (right side, aligned with signature block)
+  const qrSize = 70;
+  const qrX = PW - MR - qrSize;
+  const qrY = y - 55; // align with "Yours sincerely,"
+  doc.image(qrPngBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+  doc.font('Helvetica').fontSize(8).fillColor('#666666');
+  doc.text('Scan to Verify', qrX, qrY + qrSize + 3, { width: qrSize, align: 'center' });
+
+  // ── Finalize ────────────────────────────────────────────────────────────────
+  doc.end();
+
+  return new Promise<Buffer>((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+  });
 };

@@ -41,12 +41,6 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
     const tempId = (Date.now().toString(36) + crypto.randomBytes(8).toString('hex')).substring(0, 24);
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
-    // Fetch sender details needed for background PDF generation
-    const sender = await prisma.user.findUnique({
-      where: { id: senderId },
-      select: SENDER_SELECT_FIELDS,
-    });
-
     const letter = await prisma.letter.create({
       data: {
         id: tempId,
@@ -63,26 +57,6 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         qrToken,
       },
     });
-
-    // Pre-generate the PDF in the background so the user doesn't wait
-    // This makes the "Create" button instant
-    (async () => {
-      try {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        const letterForPdf = {
-          ...letter,
-          sender,
-        };
-        const pdfData = await generateLetterPDF(letterForPdf, qrToken, frontendUrl);
-        await prisma.letter.update({
-          where: { id: letter.id },
-          data: { pdfData: Buffer.from(pdfData) },
-        });
-        console.log('[PDF] Background pre-generation successful for letter:', letter.id);
-      } catch (pdfErr) {
-        console.error('[PDF] Background pre-generation failed:', pdfErr);
-      }
-    })();
 
     res.status(201).json(letter);
   } catch (error: any) {
