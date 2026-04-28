@@ -12,7 +12,7 @@ type ActiveView = 'dashboard' | 'analytics';
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const { notifications } = useNotifications();
-  const [letters, setLetters] = useState([]);
+  const [letters, setLetters] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState({ todayCount: 0, yesterdayCount: 0, calendarData: [] });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
