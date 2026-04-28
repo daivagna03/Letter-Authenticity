@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import OperatorManagement from './OperatorManagement';
 
-export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [toast, setToast] = useState(false);
+export default function ProfileModal({ isOpen, onClose, onProfileUpdate }: { isOpen: boolean; onClose: () => void; onProfileUpdate?: () => void }) {
   const { user, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'operators'>('profile');
   const [formData, setFormData] = useState({
@@ -18,7 +17,6 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -39,14 +37,12 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
     try {
       await updateProfile(formData);
       onClose();
-      setToast(true);
-      setTimeout(() => {
-        setToast(false);
-      }, 2500);
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
@@ -58,17 +54,6 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
   const labelClass = 'block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5';
 
   return (
-    <>
-    {/* Floating toast notification */}
-    {toast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce-in text-sm font-semibold">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-        </svg>
-        Profile updated successfully!
-      </div>
-    )}
-    {isOpen && (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
         <div className="bg-white p-6 border-b z-10 flex justify-between items-center rounded-t-2xl">
@@ -104,7 +89,6 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
           {activeTab === 'profile' ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">{error}</div>}
-              {success && <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-sm border border-emerald-100">{success}</div>}
 
               <div>
                 <label className={labelClass}>Full Name</label>
@@ -153,7 +137,5 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
         </div>
       </div>
     </div>
-    )}
-    </>
   );
 }
