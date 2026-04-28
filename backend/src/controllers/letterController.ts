@@ -41,34 +41,11 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
     const tempId = (Date.now().toString(36) + crypto.randomBytes(8).toString('hex')).substring(0, 24);
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
-    // Fetch sender details needed for PDF generation
+    // Fetch sender details needed for background PDF generation
     const sender = await prisma.user.findUnique({
       where: { id: senderId },
       select: SENDER_SELECT_FIELDS,
     });
-
-    // Pre-generate the PDF now so downloads are instant
-    let pdfData: Buffer | null = null;
-    try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const letterForPdf = {
-        id: tempId,
-        refNo,
-        date: new Date(date),
-        recipientName,
-        recipientAddress,
-        subject,
-        body,
-        signatureBlock,
-        copyTo,
-        hash,
-        qrToken,
-        sender,
-      };
-      pdfData = Buffer.from(await generateLetterPDF(letterForPdf, qrToken, frontendUrl));
-    } catch (pdfErr) {
-      console.error('[PDF] Pre-generation failed (will retry on download):', pdfErr);
-    }
 
     const letter = await prisma.letter.create({
       data: {
@@ -84,9 +61,28 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         copyTo,
         hash,
         qrToken,
-        pdfData: pdfData ? new Uint8Array(pdfData) : undefined,
       },
     });
+
+    // Pre-generate the PDF in the background so the user doesn't wait
+    // This makes the "Create" button instant
+    (async () => {
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const letterForPdf = {
+          ...letter,
+          sender,
+        };
+        const pdfData = await generateLetterPDF(letterForPdf, qrToken, frontendUrl);
+        await prisma.letter.update({
+          where: { id: letter.id },
+          data: { pdfData: Buffer.from(pdfData) },
+        });
+        console.log('[PDF] Background pre-generation successful for letter:', letter.id);
+      } catch (pdfErr) {
+        console.error('[PDF] Background pre-generation failed:', pdfErr);
+      }
+    })();
 
     res.status(201).json(letter);
   } catch (error: any) {

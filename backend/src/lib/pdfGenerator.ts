@@ -295,7 +295,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   }
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 });
   const pdfBuffer = await page.pdf({
     format: 'A4',
     printBackground: true,
