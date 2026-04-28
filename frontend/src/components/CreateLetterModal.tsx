@@ -8,14 +8,14 @@ import LetterRenderer from './LetterRenderer';
 export default function CreateLetterModal({ isOpen, onClose, onSuccess }: any) {
   const { user } = useAuth();
   const [formData, setFormData] = useState(() => ({
-    refNo: `MLA/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`,
+    refNo: `DOC/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`,
     date: new Date().toISOString().split('T')[0],
     recipientName: '',
     recipientDesignation: '',
     recipientAddressDetail: '',
     subject: '',
     body: '',
-    signatureBlock: 'Member of Legislative Assembly',
+    signatureBlock: '',
     copyTo: ''
   }));
   const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ export default function CreateLetterModal({ isOpen, onClose, onSuccess }: any) {
                   <input
                     required
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. MLA/2026/001"
+                    placeholder="e.g. DOC/2026/001"
                     value={formData.refNo}
                     onChange={(e) => setFormData({...formData, refNo: e.target.value})}
                   />

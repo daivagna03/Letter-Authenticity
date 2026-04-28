@@ -23,11 +23,15 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
   const defaultAddress = sender.defaultAddress || '';
   const senderEmail = sender.email || '';
 
+  // Parse address into structured lines for a clean, professional look
   let addressHtml = '';
   if (defaultAddress) {
-    addressHtml = `<div style="white-space: pre-wrap;">${defaultAddress.trim()}</div>`;
+    const addressLines = defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+    addressHtml = addressLines.map((line: string, idx: number) =>
+      `<div style="line-height: 1.6;">${line}${idx < addressLines.length - 1 ? ',' : ''}</div>`
+    ).join('');
   }
-  const emailLine = senderEmail ? `<div style="margin-top:12px;">E-mail: ${senderEmail}</div>` : '';
+  const emailLine = senderEmail ? `<div style="margin-top:8px;">E-mail: ${senderEmail}</div>` : '';
 
   // Parse body into paragraphs
   const parsedBody = letter.body ? letter.body.split('\n').filter((p: string) => p.trim() !== '').map((p: string) => `<p>${p}</p>`).join('') : '';

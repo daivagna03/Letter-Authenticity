@@ -14,24 +14,27 @@ interface LetterRendererProps {
   user: {
     name: string;
     email?: string;
-    designationType?: string;
-    houseType?: string;
-    constituency?: string;
-    state?: string;
+    designation?: string;
+    department?: string;
+    organization?: string;
     defaultAddress?: string;
   } | null;
 }
 
 export default function LetterRenderer({ letter, user }: LetterRendererProps) {
   const senderName = user ? `Shri ${user.name}` : 'Shri Member Name';
-  const designationType = user?.designationType || '';
-  const houseType = user?.houseType || '';
-  const constituency = user?.constituency || '';
-  const state = user?.state || '';
+  const designation = user?.designation || '';
+  const department = user?.department || '';
+  const organization = user?.organization || '';
   const defaultAddress = user?.defaultAddress || '';
   const senderEmail = user?.email || '';
 
   const parsedBody = letter.body ? letter.body.split('\n').filter(p => p.trim() !== '') : [];
+
+  // Parse address into structured lines
+  const addressLines = defaultAddress
+    ? defaultAddress.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+    : [];
 
   return (
     <div
@@ -65,16 +68,14 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '3px', fontFamily: "'Times New Roman', Times, serif" }}>
             {senderName}
           </div>
-          {designationType && (
-            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{designationType}</div>
+          {designation && (
+            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{designation}</div>
           )}
-          {houseType && (
-            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{houseType}</div>
+          {department && (
+            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{department}</div>
           )}
-          {(constituency || state) && (
-            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>
-              {constituency}{state ? `, ${state}` : ''}
-            </div>
+          {organization && (
+            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{organization}</div>
           )}
         </div>
 
@@ -91,18 +92,18 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
           </div>
         </div>
 
-        {/* Right: Address */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.4, marginTop: '2px' }}>
+        {/* Right: Address (structured) */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.6, marginTop: '2px' }}>
           <div style={{ textAlign: 'right', maxWidth: '250px' }}>
-            {defaultAddress ? (
-              <div style={{ whiteSpace: 'pre-wrap' }}>
-                {defaultAddress.trim()}
-              </div>
+            {addressLines.length > 0 ? (
+              addressLines.map((line, idx) => (
+                <div key={idx}>{line}{idx < addressLines.length - 1 ? ',' : ''}</div>
+              ))
             ) : (
               <span style={{ color: '#999', fontStyle: 'italic' }}>[Address not set]</span>
             )}
             {senderEmail && (
-              <div style={{ marginTop: '12px' }}>E-mail: {senderEmail}</div>
+              <div style={{ marginTop: '8px' }}>E-mail: {senderEmail}</div>
             )}
           </div>
         </div>
@@ -171,7 +172,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             <div style={{ height: '70px' }}></div>
             <div style={{ fontWeight: 'bold' }}>{senderName}</div>
             <div style={{ fontSize: '13px' }}>
-              {designationType}{constituency ? `, ${constituency}` : ''}
+              {designation}{organization ? `, ${organization}` : ''}
             </div>
           </div>
 
@@ -196,4 +197,3 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
     </div>
   );
 }
-
