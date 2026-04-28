@@ -41,6 +41,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
     const tempId = (Date.now().toString(36) + crypto.randomBytes(8).toString('hex')).substring(0, 24);
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
+    // Start the database creation
     const letter = await prisma.letter.create({
       data: {
         id: tempId,
@@ -56,6 +57,26 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         hash,
         qrToken,
       },
+      include: {
+        sender: { select: SENDER_SELECT_FIELDS },
+        _count: { select: { scanLogs: true } },
+      }
+    });
+
+    // Fire-and-forget PDF generation in the background
+    // This ensures the response is sent to the user instantly
+    setImmediate(async () => {
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const pdfBuffer = await generateLetterPDF(letter, qrToken, frontendUrl);
+        await prisma.letter.update({
+          where: { id: letter.id },
+          data: { pdfData: Buffer.from(pdfBuffer) },
+        });
+        console.log('[PDF] Background cache generated for:', letter.id);
+      } catch (err) {
+        console.error('[PDF] Background cache failed:', err);
+      }
     });
 
     res.status(201).json(letter);

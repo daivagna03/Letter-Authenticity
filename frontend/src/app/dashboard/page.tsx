@@ -400,7 +400,10 @@ export default function DashboardPage() {
       <CreateLetterModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => { fetchLetters(); fetchAnalytics(); }}
+        onSuccess={(newLetter: any) => {
+          setLetters((prev: any) => [newLetter, ...prev]);
+          fetchAnalytics();
+        }}
       />
 
       <ProfileModal

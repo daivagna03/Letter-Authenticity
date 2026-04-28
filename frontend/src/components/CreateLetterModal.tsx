@@ -34,8 +34,8 @@ export default function CreateLetterModal({ isOpen, onClose, onSuccess }: any) {
           ? `${formData.recipientDesignation}\n${formData.recipientAddressDetail}`
           : formData.recipientDesignation
       };
-      await api.post('/letters', submissionData);
-      onSuccess();
+      const res = await api.post('/letters', submissionData);
+      onSuccess(res.data);
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create letter');
