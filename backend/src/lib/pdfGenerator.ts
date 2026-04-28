@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import qrcode from 'qrcode';
+// @ts-ignore
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
@@ -16,10 +17,9 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
 
   const sender = letter.sender;
   const senderName = sender.name ? `Shri ${sender.name}` : '';
-  const designationType = sender.designationType || '';
-  const houseType = sender.houseType || '';
-  const constituency = sender.constituency || '';
-  const state = sender.state || '';
+  const designation = sender.designation || '';
+  const department = sender.department || '';
+  const organization = sender.organization || '';
   const defaultAddress = sender.defaultAddress || '';
   const senderEmail = sender.email || '';
 
@@ -61,8 +61,8 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         }
 
         .page-header {
-          margin-bottom: 10px;
-          margin-top: 0;
+          margin-bottom: 20px;
+          margin-top: 10px;
           padding-top: 0;
           display: flex;
           justify-content: space-between;
@@ -202,8 +202,25 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         <thead style="display: table-header-group;">
           <tr>
             <td style="padding: 0; border: none;">
-              <div style="height: 60px; text-align: center; padding-top: 10px;">
-                <img src="${emblemBase64}" style="height: 40px; width: auto;" alt="National Emblem">
+              <div class="page-header" style="background-color: #fff; position: relative; z-index: 10;">
+                <div class="header-left">
+                  <div class="name">${senderName}</div>
+                  <div class="info-line">${designation}</div>
+                  <div class="info-line">${department}</div>
+                  <div class="info-line">${organization}</div>
+                </div>
+
+                <div class="header-center">
+                  <img src="${emblemBase64}" alt="National Emblem">
+                  <div class="motto">सत्यमेव जयते</div>
+                </div>
+
+                <div class="header-right">
+                  <div class="header-right-inner">
+                    ${addressHtml}
+                    ${emailLine}
+                  </div>
+                </div>
               </div>
             </td>
           </tr>
@@ -212,68 +229,47 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
           <tr>
             <td style="padding: 0; border: none;">
               <div class="page">
-                <div class="page-header" style="margin-top: -60px; background-color: #fff; position: relative; z-index: 10;">
-          <div class="header-left">
-            <div class="name">${senderName}</div>
-            <div class="info-line">${designationType}</div>
-            <div class="info-line">${houseType}</div>
-            <div class="info-line">${constituency}${state ? ', ' + state : ''}</div>
-          </div>
+                <div class="page-content content">
+                  <!-- To / Date -->
+                  <div class="meta-row">
+                    <div class="recipient-block">
+                      To,<br>
+                      <strong>Shri ${letter.recipientName}</strong><br>
+                      ${letter.recipientAddress.replace(/\n/g, '<br>')}
+                    </div>
+                    <div class="date-block">
+                      Date: ${new Date(letter.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-')}
+                    </div>
+                  </div>
 
-          <div class="header-center">
-            <img src="${emblemBase64}" alt="National Emblem">
-            <div class="motto">सत्यमेव जयते</div>
-          </div>
+                  <!-- Subject -->
+                  <div class="subject-line">
+                    Subject: ${letter.subject}
+                  </div>
 
-          <div class="header-right">
-            <div class="header-right-inner">
-              ${addressHtml}
-              ${emailLine}
-            </div>
-          </div>
-        </div>
+                  <!-- Salutation -->
+                  <div class="salutation">Sir,</div>
 
-        <div class="page-content content">
-          <!-- To / Date -->
-          <div class="meta-row">
-            <div class="recipient-block">
-              To,<br>
-              <strong>Shri ${letter.recipientName}</strong><br>
-              ${letter.recipientAddress.replace(/\n/g, '<br>')}
-            </div>
-            <div class="date-block">
-              Date: ${new Date(letter.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-')}
-            </div>
-          </div>
+                  <!-- Body -->
+                  <div>${parsedBody}</div>
 
-          <!-- Subject -->
-          <div class="subject-line">
-            Subject: ${letter.subject}
-          </div>
+                  <!-- Footer Row -->
+                  <div class="footer-row">
+                    <!-- Signature -->
+                    <div class="signature-block">
+                      <div>Yours sincerely,</div>
+                      <div class="signature-space"></div>
+                      <div class="signature-name">${senderName}</div>
+                      <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
+                    </div>
 
-          <!-- Salutation -->
-          <div class="salutation">Sir,</div>
-
-          <!-- Body -->
-          <div>${parsedBody}</div>
-
-          <!-- Footer Row -->
-          <div class="footer-row">
-            <!-- Signature -->
-            <div class="signature-block">
-              <div>Yours sincerely,</div>
-              <div class="signature-space"></div>
-              <div class="signature-name">${senderName}</div>
-              <div class="signature-title">${designationType}${constituency ? ', ' + constituency : ''}</div>
-            </div>
-
-            <!-- QR Code -->
-            <div class="qr">
-              <img src="${qrCodeDataUrl}" alt="Verification QR Code">
-              <div>Scan to Verify</div>
-            </div>
-          </div>
-        </div>
+                    <!-- QR Code -->
+                    <div class="qr">
+                      <img src="${qrCodeDataUrl}" alt="Verification QR Code">
+                      <div>Scan to Verify</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>

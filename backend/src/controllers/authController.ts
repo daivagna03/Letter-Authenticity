@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import { Role } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
 
@@ -11,28 +12,29 @@ const USER_SELECT_FIELDS = {
   name: true,
   email: true,
   role: true,
-  mlaMpId: true,
-  designationType: true,
-  houseType: true,
-  constituency: true,
-  state: true,
+  employeeId: true,
+  designation: true,
+  department: true,
+  organization: true,
   defaultAddress: true,
+  parentUserId: true,
   createdAt: true,
 };
+
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, email, password, mlaMpId, designationType } = req.body;
+  const { name, email, password, employeeId, designation, department, organization } = req.body;
   try {
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
           { email: email },
-          { mlaMpId: mlaMpId }
+          ...(employeeId ? [{ employeeId: employeeId }] : [])
         ]
       }
     });
 
     if (existingUser) {
-      res.status(400).json({ message: 'User with this email or ID already exists' });
+      res.status(400).json({ message: 'User with this email or Employee ID already exists' });
       return;
     }
 
@@ -41,10 +43,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       data: {
         name,
         email,
-        mlaMpId,
+        employeeId,
         passwordHash,
-        designationType,
-        role: designationType === 'Member of Parliament' ? 'MLA' : 'MLA', // Simplified for now, or use a map
+        designation,
+        department,
+        organization,
+        role: Role.PRIMARY,
       },
       select: USER_SELECT_FIELDS,
     });
@@ -66,13 +70,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body; // 'email' can now be email or mlaMpId
+  const { email, password } = req.body; // 'email' can now be email or employeeId
   try {
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: email },
-          { mlaMpId: email }
+          { employeeId: email }
         ]
       }
     });
@@ -97,12 +101,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
-        mlaMpId: user.mlaMpId,
-        designationType: user.designationType,
-        houseType: user.houseType,
-        constituency: user.constituency,
-        state: user.state,
+        employeeId: user.employeeId,
+        designation: user.designation,
+        department: user.department,
+        organization: user.organization,
         defaultAddress: user.defaultAddress,
+        parentUserId: user.parentUserId,
       },
     });
   } catch (error) {
@@ -130,7 +134,7 @@ export const getMe = async (req: Request & { user?: any }, res: Response): Promi
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
 
-  const { name, email, designationType, houseType, constituency, state, defaultAddress } = req.body;
+  const { name, email, designation, department, organization, defaultAddress } = req.body;
 
   try {
     const updated = await prisma.user.update({
@@ -138,10 +142,9 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(designationType !== undefined && { designationType }),
-        ...(houseType !== undefined && { houseType }),
-        ...(constituency !== undefined && { constituency }),
-        ...(state !== undefined && { state }),
+        ...(designation !== undefined && { designation }),
+        ...(department !== undefined && { department }),
+        ...(organization !== undefined && { organization }),
         ...(defaultAddress !== undefined && { defaultAddress }),
       },
       select: USER_SELECT_FIELDS,
@@ -154,5 +157,99 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     }
     console.error('Update profile error:', error);
     res.status(500).json({ message: 'Failed to update profile' });
+  }
+};
+
+// Operator Management
+
+export const createOperator = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user || req.user.role !== 'PRIMARY') {
+    res.status(403).json({ message: 'Only primary users can create operators' });
+    return;
+  }
+
+  const { name, email, password } = req.body;
+
+  try {
+    // Check limit
+    const operatorCount = await prisma.user.count({
+      where: { parentUserId: req.user.id },
+    });
+
+    if (operatorCount >= 3) {
+      res.status(400).json({ message: 'Operator limit reached (max 3)' });
+      return;
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      res.status(400).json({ message: 'User with this email already exists' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const operator = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: Role.OPERATOR,
+        parentUserId: req.user.id,
+      },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.status(201).json(operator);
+  } catch (error) {
+    console.error('Create operator error:', error);
+    res.status(500).json({ message: 'Failed to create operator' });
+  }
+};
+
+export const getOperators = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user || req.user.role !== 'PRIMARY') {
+    res.status(403).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    const operators = await prisma.user.findMany({
+      where: { parentUserId: req.user.id },
+      select: USER_SELECT_FIELDS,
+    });
+    res.json(operators);
+  } catch (error) {
+    console.error('Get operators error:', error);
+    res.status(500).json({ message: 'Failed to fetch operators' });
+  }
+};
+
+export const deleteOperator = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user || req.user.role !== 'PRIMARY') {
+    res.status(403).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  const operatorId = req.params['id'] as string;
+
+  try {
+    // Ensure operator belongs to this primary user
+    const operator = await prisma.user.findFirst({
+      where: { id: operatorId, parentUserId: req.user.id },
+    });
+
+    if (!operator) {
+      res.status(404).json({ message: 'Operator not found' });
+      return;
+    }
+
+    await prisma.user.delete({
+      where: { id: operatorId },
+    });
+
+    res.json({ message: 'Operator deleted successfully' });
+  } catch (error) {
+    console.error('Delete operator error:', error);
+    res.status(500).json({ message: 'Failed to delete operator' });
   }
 };

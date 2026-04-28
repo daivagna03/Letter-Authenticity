@@ -33,8 +33,8 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-slate-900">Secure Letter Verification</h2>
-          <p className="text-slate-500 mt-2">Official Portal for MLA/MP Communication</p>
+          <h2 className="text-3xl font-bold text-slate-900">Internal Communication</h2>
+          <p className="text-slate-500 mt-2">Official Portal for Organization Communication</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -45,12 +45,12 @@ export default function LoginPage() {
           )}
           
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Email or MLA/MP ID</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Email or Employee ID</label>
             <input
               type="text"
               required
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-              placeholder="name@gov.in or ID"
+              placeholder="name@organization.com or ID"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
             />
@@ -87,7 +87,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-8 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-          Secure Government Portal • Unauthorized Access Prohibited
+          Secure Communication Portal • Unauthorized Access Prohibited
         </p>
       </div>
     </div>

@@ -9,29 +9,42 @@ import requestIp from 'request-ip';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
 
+const SENDER_SELECT_FIELDS = { 
+  name: true, 
+  role: true, 
+  designation: true, 
+  department: true, 
+  organization: true, 
+  employeeId: true, 
+  defaultAddress: true, 
+  email: true 
+};
+
 export const createLetter = async (req: AuthRequest, res: Response): Promise<void> => {
   const { refNo, date, recipientName, recipientAddress, subject, body, signatureBlock, copyTo } = req.body;
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
 
+  const senderId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
+
   try {
     const letterContent = JSON.stringify({
-    refNo,
-    date: new Date(date).toISOString(),
-    recipientName,
-    recipientAddress,
-    subject,
-    body,
-    signatureBlock,
-    copyTo
-  });
+      refNo,
+      date: new Date(date).toISOString(),
+      recipientName,
+      recipientAddress,
+      subject,
+      body,
+      signatureBlock,
+      copyTo
+    });
     const hash = crypto.createHash('sha256').update(letterContent).digest('hex');
-    const tempId = crypto.randomUUID();
+    const tempId = (Date.now().toString(36) + crypto.randomBytes(8).toString('hex')).substring(0, 24);
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
     const letter = await prisma.letter.create({
       data: {
         id: tempId,
-        senderId: req.user.id,
+        senderId,
         refNo,
         date: new Date(date),
         recipientName,
@@ -58,12 +71,15 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
 
 export const getLetters = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
+  
+  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
+  
   try {
     const letters = await prisma.letter.findMany({
-      where: req.user.role === 'ADMIN' ? {} : { senderId: req.user.id },
+      where: req.user.role === 'ADMIN' ? {} : { senderId: targetUserId },
       orderBy: { createdAt: 'desc' },
       include: {
-        sender: { select: { name: true, role: true, designationType: true, houseType: true, constituency: true, state: true, defaultAddress: true, email: true } },
+        sender: { select: SENDER_SELECT_FIELDS },
         _count: { select: { scanLogs: true } },
       },
     });
@@ -79,7 +95,7 @@ export const getLetterById = async (req: AuthRequest, res: Response): Promise<vo
     const letter = await prisma.letter.findUnique({
       where: { id },
       include: {
-        sender: { select: { name: true, role: true, designationType: true, houseType: true, constituency: true, state: true, defaultAddress: true, email: true } },
+        sender: { select: SENDER_SELECT_FIELDS },
         scanLogs: { orderBy: { scannedAt: 'desc' }, take: 10 },
       },
     });
@@ -100,7 +116,7 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
 
     const letter = await prisma.letter.findUnique({
       where: { id: letterId },
-      include: { sender: { select: { name: true, role: true, designationType: true, houseType: true, constituency: true, state: true, defaultAddress: true, email: true } } },
+      include: { sender: { select: SENDER_SELECT_FIELDS } },
     });
 
     if (!letter) {
@@ -161,18 +177,17 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
       letter: {
         refNo: letter.refNo,
         date: letter.date,
-        recipientName: `Shri ${letter.recipientName}`,
+        recipientName: letter.recipientName,
         recipientAddress: letter.recipientAddress,
         subject: letter.subject,
         body: letter.body,
         signatureBlock: letter.signatureBlock,
         copyTo: letter.copyTo,
-        senderName: `Shri ${letter.sender.name}`,
+        senderName: letter.sender.name,
         senderRole: letter.sender.role,
-        senderDesignation: letter.sender.designationType,
-        senderHouseType: letter.sender.houseType,
-        senderConstituency: letter.sender.constituency,
-        senderState: letter.sender.state,
+        senderDesignation: letter.sender.designation,
+        senderDepartment: letter.sender.department,
+        senderOrganization: letter.sender.organization,
         createdAt: letter.createdAt,
       },
     });
@@ -186,7 +201,7 @@ export const getLetterPDF = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const letter = await prisma.letter.findUnique({
       where: { id },
-      include: { sender: { select: { name: true, role: true, designationType: true, houseType: true, constituency: true, state: true, defaultAddress: true, email: true } } },
+      include: { sender: { select: SENDER_SELECT_FIELDS } },
     });
     if (!letter) { res.status(404).json({ message: 'Letter not found' }); return; }
 
@@ -201,9 +216,12 @@ export const getLetterPDF = async (req: AuthRequest, res: Response): Promise<voi
     res.status(500).json({ message: 'Failed to generate PDF' });
   }
 };
+
 export const deleteLetter = async (req: AuthRequest, res: Response): Promise<void> => {
   const id = req.params['id'] as string;
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
+
+  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
 
   try {
     const letter = await prisma.letter.findUnique({
@@ -215,7 +233,7 @@ export const deleteLetter = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    if (req.user.role !== 'ADMIN' && letter.senderId !== req.user.id) {
+    if (req.user.role !== 'ADMIN' && letter.senderId !== targetUserId) {
       res.status(403).json({ message: 'You do not have permission to delete this letter' });
       return;
     }
@@ -228,5 +246,62 @@ export const deleteLetter = async (req: AuthRequest, res: Response): Promise<voi
   } catch (error) {
     console.error('Delete letter error:', error);
     res.status(500).json({ message: 'Failed to delete letter' });
+  }
+};
+
+export const getAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
+
+  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const lettersToday = await prisma.letter.count({
+      where: {
+        senderId: targetUserId,
+        createdAt: { gte: today }
+      }
+    });
+
+    const lettersYesterday = await prisma.letter.count({
+      where: {
+        senderId: targetUserId,
+        createdAt: { gte: yesterday, lt: today }
+      }
+    });
+
+    const recentLetters = await prisma.letter.findMany({
+      where: {
+        senderId: targetUserId,
+        createdAt: { gte: thirtyDaysAgo }
+      },
+      select: { createdAt: true }
+    });
+
+    const dailyCounts: Record<string, number> = {};
+    recentLetters.forEach(letter => {
+      const dateStr = letter.createdAt.toISOString().split('T')[0];
+      if (dateStr) {
+        dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
+      }
+    });
+
+    res.json({
+      todayCount: lettersToday,
+      yesterdayCount: lettersYesterday,
+      calendarData: Object.entries(dailyCounts).map(([date, count]) => ({ date, count }))
+    });
+
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ message: 'Failed to fetch analytics' });
   }
 };

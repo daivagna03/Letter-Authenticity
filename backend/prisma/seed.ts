@@ -6,30 +6,28 @@ const prisma = new PrismaClient();
 async function main() {
   const passwordHash = await bcrypt.hash('password123', 10);
   
-  const mla = await prisma.user.upsert({
-    where: { email: 'mla@gov.in' },
+  const user = await prisma.user.upsert({
+    where: { email: 'admin@organization.com' },
     update: {
-      designationType: 'Member of Parliament',
-      houseType: 'Lok Sabha',
-      constituency: 'Kandhamal',
-      state: 'Odisha',
-      defaultAddress: "D-6, Block-A, M.S. Flats 'Sindhu'\nBaba Kharak Singh Marg\nNew Delhi-110001",
+      designation: 'General Manager',
+      department: 'Operations',
+      organization: 'Acme Corp',
+      defaultAddress: "123 Business Rd\nTech Park\nCity-100001",
     },
     create: {
-      name: 'Pratyusha Rajeshwari Singh',
-      email: 'mla@gov.in',
-      mlaMpId: 'MP/Kandhamal/2026',
+      name: 'John Doe',
+      email: 'admin@organization.com',
+      employeeId: 'EMP-001',
       passwordHash,
-      role: Role.MLA,
-      designationType: 'Member of Parliament',
-      houseType: 'Lok Sabha',
-      constituency: 'Kandhamal',
-      state: 'Odisha',
-      defaultAddress: "D-6, Block-A, M.S. Flats 'Sindhu'\nBaba Kharak Singh Marg\nNew Delhi-110001",
+      role: Role.PRIMARY,
+      designation: 'General Manager',
+      department: 'Operations',
+      organization: 'Acme Corp',
+      defaultAddress: "123 Business Rd\nTech Park\nCity-100001",
     },
   });
 
-  console.log('Seeded initial MLA user:', mla.email);
+  console.log('Seeded initial user:', user.email);
 }
 
 main()

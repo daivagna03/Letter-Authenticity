@@ -8,8 +8,10 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    mlaMpId: '',
-    designationType: 'Member of Legislative Assembly',
+    employeeId: '',
+    designation: '',
+    department: '',
+    organization: '',
     password: '',
     confirmPassword: '',
   });
@@ -32,8 +34,10 @@ export default function RegisterPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        mlaMpId: formData.mlaMpId,
-        designationType: formData.designationType,
+        employeeId: formData.employeeId,
+        designation: formData.designation,
+        department: formData.department,
+        organization: formData.organization,
       });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -71,7 +75,7 @@ export default function RegisterPage() {
               type="text"
               required
               className={inputClass}
-              placeholder="e.g. Rajesh Kumar"
+              placeholder="e.g. John Doe"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
             />
@@ -83,35 +87,56 @@ export default function RegisterPage() {
               type="email"
               required
               className={inputClass}
-              placeholder="name@gov.in"
+              placeholder="name@organization.com"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
 
           <div>
-            <label className={labelClass}>MLA/MP ID (Unique)</label>
+            <label className={labelClass}>Employee ID (Unique)</label>
             <input
               type="text"
               required
               className={inputClass}
-              placeholder="e.g. MLA/2026/01"
-              value={formData.mlaMpId}
-              onChange={(e) => setFormData({...formData, mlaMpId: e.target.value})}
+              placeholder="e.g. EMP-001"
+              value={formData.employeeId}
+              onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
             />
           </div>
 
           <div>
             <label className={labelClass}>Designation</label>
-            <select
+            <input
+              type="text"
               required
               className={inputClass}
-              value={formData.designationType}
-              onChange={(e) => setFormData({...formData, designationType: e.target.value})}
-            >
-              <option value="Member of Legislative Assembly">MLA (Member of Legislative Assembly)</option>
-              <option value="Member of Parliament">MP (Member of Parliament)</option>
-            </select>
+              placeholder="e.g. General Manager"
+              value={formData.designation}
+              onChange={(e) => setFormData({...formData, designation: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Department</label>
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="e.g. Operations"
+              value={formData.department}
+              onChange={(e) => setFormData({...formData, department: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Organization</label>
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="e.g. Acme Corp"
+              value={formData.organization}
+              onChange={(e) => setFormData({...formData, organization: e.target.value})}
+            />
           </div>
 
           <div>

@@ -22,8 +22,8 @@ async function VerifyContent({ token }: { token: string }) {
   return (
     <div className="max-w-2xl mx-auto my-10 px-4">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-700 mb-1">Secure Letter Verification</h1>
-        <p className="text-slate-400 text-sm">Government of India — Official Portal</p>
+        <h1 className="text-2xl font-bold text-slate-700 mb-1">Document Verification</h1>
+        <p className="text-slate-400 text-sm">Official Portal for Secure Communications</p>
       </div>
 
       <div className={`p-8 rounded-3xl shadow-2xl border-2 mb-8 text-center ${
@@ -44,7 +44,7 @@ async function VerifyContent({ token }: { token: string }) {
           isError ? 'text-yellow-800' :
           'text-red-800'
         }`}>
-          {isAuthentic ? 'Letter is Authentic' :
+          {isAuthentic ? 'Document is Authentic' :
            isError ? 'Verification Error' :
            'Tampering Detected'}
         </h2>
@@ -55,8 +55,8 @@ async function VerifyContent({ token }: { token: string }) {
           'text-red-600'
         }`}>
           {isAuthentic
-            ? 'The cryptographic hash matches the original. This letter is genuine.'
-            : result?.message || 'The content of this letter may have been altered.'}
+            ? 'The cryptographic hash matches the original record. This document is genuine.'
+            : result?.message || 'The content of this document may have been altered.'}
         </p>
 
         <div className={`mt-4 inline-block px-4 py-1 rounded-full text-xs font-bold tracking-widest ${
@@ -72,7 +72,7 @@ async function VerifyContent({ token }: { token: string }) {
         <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
             <h3 className="font-bold tracking-widest uppercase text-xs">Official Document Record</h3>
-            <span className="text-[10px] bg-white/20 px-2 py-1 rounded">REF: {result.letter.refNo}</span>
+            <span className="text-[10px] bg-white/20 px-2 py-1 rounded font-mono">REF: {result.letter.refNo}</span>
           </div>
 
           <div className="p-8 space-y-6">
@@ -80,13 +80,13 @@ async function VerifyContent({ token }: { token: string }) {
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sender</p>
                 <p className="font-bold text-slate-800">{result.letter.senderName}</p>
-                <p className="text-sm text-slate-500 font-semibold">{result.letter.senderDesignation || result.letter.senderRole}</p>
-                {result.letter.senderHouseType && (
-                  <p className="text-xs text-slate-400 mt-0.5">{result.letter.senderHouseType}</p>
+                <p className="text-sm text-slate-600 font-semibold">{result.letter.senderDesignation}</p>
+                {result.letter.senderDepartment && (
+                  <p className="text-xs text-slate-500 mt-0.5">{result.letter.senderDepartment}</p>
                 )}
-                {(result.letter.senderConstituency || result.letter.senderState) && (
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {result.letter.senderConstituency}{result.letter.senderState ? `, ${result.letter.senderState}` : ''}
+                {result.letter.senderOrganization && (
+                  <p className="text-xs text-slate-400 mt-1 font-bold italic">
+                    {result.letter.senderOrganization}
                   </p>
                 )}
               </div>
@@ -103,9 +103,8 @@ async function VerifyContent({ token }: { token: string }) {
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Recipient</p>
               <p className="font-semibold text-slate-800">{result.letter.recipientName}</p>
-              <div className="mt-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Designation</p>
-                <p className="text-sm text-slate-600 font-medium">{result.letter.recipientAddress}</p>
+              <div className="mt-1 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                {result.letter.recipientAddress}
               </div>
             </div>
 
@@ -117,15 +116,15 @@ async function VerifyContent({ token }: { token: string }) {
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Verification Status</p>
               <p className="font-mono text-[10px] text-slate-500 break-all">
-                SHA-256 hash {isAuthentic ? 'matches' : 'does NOT match'} stored record.
-                Verified at: {new Date().toUTCString()}
+                Digital fingerprint {isAuthentic ? 'matches' : 'does NOT match'} original record.
+                Verified: {new Date().toLocaleString()}
               </p>
             </div>
           </div>
 
           <div className="bg-slate-50 p-5 text-center border-t border-slate-100">
-            <p className="text-xs text-slate-400 italic">
-              © Government of India • Secure Letter Verification System
+            <p className="text-xs text-slate-400 italic font-medium">
+              Secure Document Verification System • End-to-End Encrypted
             </p>
           </div>
         </div>
@@ -154,7 +153,7 @@ export default async function VerifyPage({
         <Suspense fallback={
           <div className="flex flex-col items-center justify-center p-10 mt-20">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-500 font-medium">Verifying...</p>
+            <p className="text-slate-500 font-medium">Verifying Authenticity...</p>
           </div>
         }>
           <VerifyContent token={token} />

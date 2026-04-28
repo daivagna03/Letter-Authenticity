@@ -9,12 +9,12 @@ export interface User {
   name: string;
   email: string;
   role: string;
-  mlaMpId?: string;
-  designationType?: string;
-  houseType?: string;
-  constituency?: string;
-  state?: string;
+  employeeId?: string;
+  designation?: string;
+  department?: string;
+  organization?: string;
   defaultAddress?: string;
+  parentUserId?: string;
 }
 
 interface AuthContextType {

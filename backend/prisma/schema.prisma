@@ -13,25 +13,29 @@ datasource db {
 model User {
   id            String   @id @default(uuid())
   name          String
-  role          Role     @default(MLA)
+  role          Role     @default(PRIMARY)
   email         String   @unique
-  mlaMpId       String?  @unique
+  employeeId    String?  @unique
   passwordHash  String
   
-  // Letterhead configuration fields
-  designationType String?
-  houseType     String?
-  constituency  String?
-  state         String?
+  // Configuration fields
+  designation   String?
+  department    String?
+  organization  String?
   defaultAddress String?
   
+  // Operator relations
+  parentUserId  String?
+  parentUser    User?    @relation("UserToOperator", fields: [parentUserId], references: [id])
+  operators     User[]   @relation("UserToOperator")
+
   letters       Letter[]
   createdAt     DateTime @default(now())
 }
 
 enum Role {
-  MLA
-  ASSISTANT
+  PRIMARY
+  OPERATOR
   ADMIN
 }
 

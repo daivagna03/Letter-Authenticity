@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const { user, logout } = useAuth();
   const { notifications } = useNotifications();
   const [letters, setLetters] = useState([]);
+  const [analytics, setAnalytics] = useState({ todayCount: 0, yesterdayCount: 0, calendarData: [] });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,8 +27,18 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchAnalytics = async () => {
+    try {
+      const res = await api.get('/letters/analytics');
+      setAnalytics(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchLetters();
+    fetchAnalytics();
   }, []);
 
   const downloadPDF = async (letterId: string, refNo: string) => {
@@ -36,7 +47,7 @@ export default function DashboardPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Letter_${refNo.replace(/\//g, '_')}.pdf`);
+      link.setAttribute('download', `Letter_${refNo.replace(/\\//g, '_')}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -50,15 +61,27 @@ export default function DashboardPage() {
     try {
       await api.delete(`/letters/${id}`);
       setLetters(letters.filter((l: any) => l.id !== id));
+      fetchAnalytics();
     } catch (err) {
       alert('Failed to delete letter');
     }
   };
 
+  // Ensure calendar data covers 30 days padded with zeros
+  const paddedCalendarData = Array.from({ length: 30 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    const dateStr = d.toISOString().split('T')[0];
+    const existing = analytics.calendarData.find((x: any) => x.date === dateStr);
+    return { date: dateStr, count: existing ? (existing as any).count : 0 };
+  });
+
+  const maxCount = Math.max(1, ...paddedCalendarData.map(d => d.count));
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <aside className="w-72 bg-slate-900 text-white flex flex-col p-6 fixed h-full">
+      <aside className="w-72 bg-slate-900 text-white flex flex-col p-6 fixed h-full z-10 shadow-xl">
         <div className="flex items-center gap-3 mb-10 px-2">
           <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl">V</div>
           <h1 className="font-bold text-xl tracking-tight">DocVerify</h1>
@@ -76,15 +99,15 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Profile Settings
+            Settings
           </button>
         </nav>
 
         <div className="pt-6 border-t border-white/10">
           <div className="px-4 mb-4">
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">User Info</p>
-            <p className="font-semibold mt-1">Shri {user?.name}</p>
-            <p className="text-sm text-slate-400">{user?.role}</p>
+            <p className="font-semibold mt-1 truncate">{user?.name}</p>
+            <p className="text-sm text-slate-400">{user?.role === 'PRIMARY' ? 'Primary Account' : 'Operator'}</p>
           </div>
           <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -96,7 +119,7 @@ export default function DashboardPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-72 p-10">
+      <main className="flex-1 ml-72 p-10 relative">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-10">
             <div>
@@ -115,8 +138,41 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Letters List */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-8">
+              
+              {/* Analytics Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+                  <h3 className="font-bold text-slate-800 mb-4">Documents Created</h3>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Today</p>
+                      <p className="text-5xl font-extrabold text-indigo-600">{analytics.todayCount}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Yesterday</p>
+                      <p className="text-2xl font-bold text-slate-600">{analytics.yesterdayCount}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                   <h3 className="font-bold text-slate-800 mb-2">30-Day Activity</h3>
+                   <p className="text-xs text-slate-400 mb-4">Daily document generation trend</p>
+                   <div className="flex items-end h-20 gap-[2px] mt-2">
+                     {paddedCalendarData.map((day: any, i: number) => (
+                        <div 
+                          key={i} 
+                          className="bg-indigo-400 hover:bg-indigo-600 rounded-t-sm transition-all flex-1"
+                          style={{ height: \`\${Math.max(5, (day.count / maxCount) * 100)}%\`, opacity: day.count === 0 ? 0.3 : 1 }}
+                          title={\`\${day.date}: \${day.count} documents\`}
+                        ></div>
+                     ))}
+                   </div>
+                </div>
+              </div>
+
+              {/* Letters List */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                   <h3 className="font-bold text-slate-800">Recent Letters</h3>
@@ -136,7 +192,7 @@ export default function DashboardPage() {
                             <span className="text-xs text-slate-400">• {new Date(letter.createdAt).toLocaleDateString()}</span>
                           </div>
                           <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-all">{letter.subject}</h4>
-                          <p className="text-sm text-slate-500 truncate max-w-md">To: Shri {letter.recipientName}</p>
+                          <p className="text-sm text-slate-500 truncate max-w-md">To: {letter.recipientName}</p>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right mr-4">
@@ -181,8 +237,8 @@ export default function DashboardPage() {
                     <p className="text-sm text-slate-400 italic text-center py-4">No recent activity detected.</p>
                   ) : (
                     notifications.map((notif, i) => (
-                      <div key={i} className={`p-4 rounded-xl border-l-4 shadow-sm ${notif.type === 'WARNING' ? 'bg-orange-50 border-orange-400' : 'bg-blue-50 border-blue-400'}`}>
-                        <p className={`text-xs font-bold mb-1 ${notif.type === 'WARNING' ? 'text-orange-700' : 'text-blue-700'}`}>
+                      <div key={i} className={\`p-4 rounded-xl border-l-4 shadow-sm \${notif.type === 'WARNING' ? 'bg-orange-50 border-orange-400' : 'bg-blue-50 border-blue-400'}\`}>
+                        <p className={\`text-xs font-bold mb-1 \${notif.type === 'WARNING' ? 'text-orange-700' : 'text-blue-700'}\`}>
                           {notif.type === 'WARNING' ? '⚠️ SECURITY ALERT' : 'ℹ️ NOTIFICATION'}
                         </p>
                         <p className="text-sm text-slate-800 font-medium leading-snug">{notif.message}</p>
@@ -211,7 +267,7 @@ export default function DashboardPage() {
       <CreateLetterModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchLetters}
+        onSuccess={() => { fetchLetters(); fetchAnalytics(); }}
       />
 
       <ProfileModal
