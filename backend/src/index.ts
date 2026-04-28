@@ -5,6 +5,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
 import letterRoutes from './routes/letters';
+import { warmBrowser } from './lib/pdfGenerator';
 
 dotenv.config();
 
@@ -48,4 +49,6 @@ app.set('io', io);
 
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  // Pre-launch Chromium so the first PDF download is fast
+  warmBrowser().catch((err) => console.error('[PDF] Browser warm-up failed:', err));
 });
