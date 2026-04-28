@@ -47,7 +47,7 @@ export default function DashboardPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Letter_${refNo.replace(/\\//g, '_')}.pdf`);
+      link.setAttribute('download', `Letter_${refNo.replace(/\//g, '_')}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -164,8 +164,8 @@ export default function DashboardPage() {
                         <div 
                           key={i} 
                           className="bg-indigo-400 hover:bg-indigo-600 rounded-t-sm transition-all flex-1"
-                          style={{ height: \`\${Math.max(5, (day.count / maxCount) * 100)}%\`, opacity: day.count === 0 ? 0.3 : 1 }}
-                          title={\`\${day.date}: \${day.count} documents\`}
+                          style={{ height: `${Math.max(5, (day.count / maxCount) * 100)}%`, opacity: day.count === 0 ? 0.3 : 1 }}
+                          title={`${day.date}: ${day.count} documents`}
                         ></div>
                      ))}
                    </div>
@@ -237,8 +237,8 @@ export default function DashboardPage() {
                     <p className="text-sm text-slate-400 italic text-center py-4">No recent activity detected.</p>
                   ) : (
                     notifications.map((notif, i) => (
-                      <div key={i} className={\`p-4 rounded-xl border-l-4 shadow-sm \${notif.type === 'WARNING' ? 'bg-orange-50 border-orange-400' : 'bg-blue-50 border-blue-400'}\`}>
-                        <p className={\`text-xs font-bold mb-1 \${notif.type === 'WARNING' ? 'text-orange-700' : 'text-blue-700'}\`}>
+                      <div key={i} className={`p-4 rounded-xl border-l-4 shadow-sm ${notif.type === 'WARNING' ? 'bg-orange-50 border-orange-400' : 'bg-blue-50 border-blue-400'}`}>
+                        <p className={`text-xs font-bold mb-1 ${notif.type === 'WARNING' ? 'text-orange-700' : 'text-blue-700'}`}>
                           {notif.type === 'WARNING' ? '⚠️ SECURITY ALERT' : 'ℹ️ NOTIFICATION'}
                         </p>
                         <p className="text-sm text-slate-800 font-medium leading-snug">{notif.message}</p>
