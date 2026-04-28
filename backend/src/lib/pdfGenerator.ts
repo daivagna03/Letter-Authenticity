@@ -1,9 +1,73 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import qrcode from 'qrcode';
 // @ts-ignore
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
+
+// ── Singleton browser ──────────────────────────────────────────────────────────
+// Launch Chromium once and reuse the instance for every PDF request.
+// This eliminates the 40-60 s cold-start that happens when a new browser
+// process is spawned on every single download.
+let _browser: Browser | null = null;
+let _browserPromise: Promise<Browser> | null = null;
+
+async function getBrowser(): Promise<Browser> {
+  // Already running and connected — reuse it
+  if (_browser?.connected) return _browser;
+
+  // Another call is already launching — wait for it
+  if (_browserPromise) return _browserPromise;
+
+  _browserPromise = (async () => {
+    console.log('[PDF] Launching browser (cold start)…');
+
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-extensions',
+      '--single-process',
+      '--no-zygote',
+    ];
+
+    let browser: Browser;
+    if (process.env.NODE_ENV === 'production') {
+      browser = await puppeteer.launch({
+        args: [...chromium.args, ...launchArgs],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+    } else {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: launchArgs,
+      });
+    }
+
+    _browser = browser;
+
+    // If the browser crashes / is killed, clear state so next call relaunches
+    browser.on('disconnected', () => {
+      console.log('[PDF] Browser disconnected — will relaunch on next request');
+      _browser = null;
+      _browserPromise = null;
+    });
+
+    console.log('[PDF] Browser ready');
+    return browser;
+  })();
+
+  return _browserPromise;
+}
+
+// Call this once at server startup to warm the browser before any request arrives
+export async function warmBrowser(): Promise<void> {
+  await getBrowser();
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string) => {
   const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
@@ -36,11 +100,12 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
   // Parse body into paragraphs
   const parsedBody = letter.body ? letter.body.split('\n').filter((p: string) => p.trim() !== '').map((p: string) => `<p>${p}</p>`).join('') : '';
 
+  // NOTE: No external font URLs — they cause 20-30 s network hangs in production.
+  // Times New Roman is available natively in the Chromium sandbox.
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
       <style>
         html, body {
           margin: 0;
@@ -55,7 +120,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-          font-family: 'Times New Roman', 'Noto Sans Devanagari', Times, serif;
+          font-family: 'Times New Roman', Times, serif;
           color: #000;
           font-size: 13px;
         }
@@ -87,7 +152,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         .header-left .name {
           font-size: 18px;
           font-weight: bold;
-          font-family: 'Times New Roman', 'Noto Sans Devanagari', Times, serif;
+          font-family: 'Times New Roman', Times, serif;
           margin-bottom: 3px;
         }
         .header-left .info-line {
@@ -156,7 +221,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
           text-align: justify;
           line-height: 1.6;
           margin-bottom: 12px;
-          font-family: 'Times New Roman', 'Noto Sans Devanagari', serif;
+          font-family: 'Times New Roman', serif;
           page-break-inside: avoid;
         }
 
@@ -283,25 +348,19 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     </html>
   `;
 
-  let browser;
-  if (process.env.NODE_ENV === 'production') {
-    browser = await puppeteer.launch({
-      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process'],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
-  } else {
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-  }
+  const browser = await getBrowser();
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 });
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '8mm', bottom: '20mm', left: '15mm', right: '15mm' }
-  });
 
-  await browser.close();
-  return pdfBuffer;
+  try {
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '8mm', bottom: '20mm', left: '15mm', right: '15mm' }
+    });
+    return pdfBuffer;
+  } finally {
+    // Always close the page but keep the browser alive for the next request
+    await page.close();
+  }
 };
