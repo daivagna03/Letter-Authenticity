@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const registered = searchParams.get('registered');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,6 +41,11 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {registered && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm rounded-lg font-medium">
+              Account created successfully! Please sign in to continue.
+            </div>
+          )}
           {error && (
             <div className="p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
               {error}

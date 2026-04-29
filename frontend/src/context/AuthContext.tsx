@@ -84,12 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (data: any) => {
-    const res = await api.post('/auth/register', data);
-    const { token: t, user: u } = res.data;
-    localStorage.setItem('token', t);
-    setToken(t);
-    setUser(u);
-    router.push('/dashboard');
+    await api.post('/auth/register', data);
+    // After registration, we don't log in automatically.
+    // We just redirect to login page.
+    router.push('/login?registered=true');
   };
 
   const logout = () => {
