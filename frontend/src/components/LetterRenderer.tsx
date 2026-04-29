@@ -85,7 +85,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
           <img
             src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
             alt="National Emblem"
-            style={{ width: '65px', height: 'auto' }}
+            style={{ width: '65px', height: '82px', objectFit: 'cover', objectPosition: 'top' }}
           />
           <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', marginTop: '2px' }}>
             सत्यमेव जयते

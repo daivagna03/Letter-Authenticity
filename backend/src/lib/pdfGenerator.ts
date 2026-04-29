@@ -156,7 +156,9 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         }
         .header-center img {
           width: 65px;
-          height: auto;
+          height: 82px;
+          object-fit: cover;
+          object-position: top;
         }
         .header-center .motto {
           font-size: 11px;
@@ -345,7 +347,14 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '8mm', bottom: '20mm', left: '15mm', right: '15mm' }
+      margin: { top: '8mm', bottom: '20mm', left: '15mm', right: '15mm' },
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: `
+        <div style="font-size: 10px; text-align: center; width: 100%; font-family: 'Times New Roman', Times, serif; color: #666; padding-bottom: 5mm;">
+          Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+        </div>
+      `
     });
     return pdfBuffer;
   } finally {
