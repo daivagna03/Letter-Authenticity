@@ -156,9 +156,7 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
         }
         .header-center img {
           width: 65px;
-          height: 82px;
-          object-fit: cover;
-          object-position: top;
+          height: auto;
         }
         .header-center .motto {
           font-size: 11px;
@@ -272,7 +270,6 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
 
                 <div class="header-center">
                   <img src="${emblemBase64}" alt="National Emblem">
-                  <div class="motto">सत्यमेव जयते</div>
                 </div>
 
                 <div class="header-right">

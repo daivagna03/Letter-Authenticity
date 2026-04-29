@@ -81,15 +81,11 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
 
         {/* Center: Emblem */}
         <div style={{ flexShrink: 0, textAlign: 'center', padding: '0 20px' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
             alt="National Emblem"
-            style={{ width: '65px', height: '82px', objectFit: 'cover', objectPosition: 'top' }}
+            style={{ width: '65px', height: 'auto' }}
           />
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', marginTop: '2px' }}>
-            सत्यमेव जयते
-          </div>
         </div>
 
         {/* Right: Address (structured) */}
