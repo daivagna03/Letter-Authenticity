@@ -64,16 +64,16 @@ export default function OperatorManagement() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Name</label>
-              <input required className={inputClass} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Operator Name" />
+              <input required className={inputClass} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
             </div>
             <div>
               <label className={labelClass}>Email</label>
-              <input required type="email" className={inputClass} value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="operator@org.com" />
+              <input required type="email" className={inputClass} value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
             </div>
           </div>
           <div>
             <label className={labelClass}>Password</label>
-            <input required type="password" minLength={6} className={inputClass} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} placeholder="••••••" />
+            <input required type="password" minLength={6} className={inputClass} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
           </div>
           <button type="submit" disabled={operators.length >= 3} className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold disabled:opacity-50">
             {operators.length >= 3 ? 'Limit Reached (3/3)' : 'Create Operator'}

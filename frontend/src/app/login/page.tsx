@@ -50,7 +50,6 @@ export default function LoginPage() {
               type="text"
               required
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-              placeholder="name@organization.com or ID"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
             />
@@ -62,7 +61,6 @@ export default function LoginPage() {
               type="password"
               required
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />

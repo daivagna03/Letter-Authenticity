@@ -92,33 +92,33 @@ export default function ProfileModal({ isOpen, onClose, onProfileUpdate }: { isO
 
               <div>
                 <label className={labelClass}>Full Name</label>
-                <input required className={inputClass} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. John Doe" />
+                <input required className={inputClass} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
               </div>
 
               <div>
                 <label className={labelClass}>Email</label>
-                <input type="email" className={inputClass} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="e.g. user@organization.com" />
+                <input type="email" className={inputClass} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Designation</label>
-                  <input className={inputClass} value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} placeholder="e.g. General Manager" />
+                  <input className={inputClass} value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} />
                 </div>
                 <div>
                   <label className={labelClass}>Department</label>
-                  <input className={inputClass} value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} placeholder="e.g. Operations" />
+                  <input className={inputClass} value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
                 </div>
               </div>
 
               <div>
                 <label className={labelClass}>Organization / Company</label>
-                <input className={inputClass} value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} placeholder="e.g. Acme Corp" />
+                <input className={inputClass} value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} />
               </div>
 
               <div>
                 <label className={labelClass}>Default Address (for letterhead)</label>
-                <textarea rows={3} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} placeholder={"123 Business Rd\nTech Park\nCity-100001"} />
+                <textarea rows={3} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} />
                 <p className="text-xs text-slate-400 mt-1">This will appear on the right side of your letter header.</p>
               </div>
 

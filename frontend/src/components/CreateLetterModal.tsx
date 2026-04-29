@@ -94,7 +94,6 @@ export default function CreateLetterModal({ isOpen, onClose, onSuccess }: any) {
                 <input
                   required
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Full Name"
                   value={formData.recipientName}
                   onChange={(e) => setFormData({...formData, recipientName: e.target.value})}
                 />
@@ -105,7 +104,6 @@ export default function CreateLetterModal({ isOpen, onClose, onSuccess }: any) {
                 <input
                   required
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="e.g. Collector & District Magistrate"
                   value={formData.recipientDesignation}
                   onChange={(e) => setFormData({...formData, recipientDesignation: e.target.value})}
                 />
@@ -116,7 +114,6 @@ export default function CreateLetterModal({ isOpen, onClose, onSuccess }: any) {
                 <textarea
                   rows={2}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="e.g. Ranga Reddy District, Telangana"
                   value={formData.recipientAddressDetail}
                   onChange={(e) => setFormData({...formData, recipientAddressDetail: e.target.value})}
                 />
