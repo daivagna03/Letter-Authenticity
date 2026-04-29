@@ -118,44 +118,41 @@ export default function RegisterPage() {
             </label>
           </div>
           
-          {/* Basic Info */}
-          {!isAssistant && (
-            <div>
-              <label className={labelClass}>Full Name</label>
-              <input
-                type="text"
-                required
-                className={inputClass}
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-              />
-            </div>
-          )}
-
-          <div>
-            <label className={labelClass}>Official Email</label>
-            <input
-              type="email"
-              required
-              className={inputClass}
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Employee ID (Unique)</label>
-            <input
-              type="text"
-              className={inputClass}
-              value={formData.employeeId}
-              onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-            />
-          </div>
-
-          {/* Regular Account Fields */}
+          {/* Regular Account Basic Info */}
           {!isAssistant && (
             <>
+              <div>
+                <label className={labelClass}>Full Name</label>
+                <input
+                  type="text"
+                  required
+                  className={inputClass}
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Official Email</label>
+                <input
+                  type="email"
+                  required
+                  className={inputClass}
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Employee ID (Unique)</label>
+                <input
+                  type="text"
+                  className={inputClass}
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                />
+              </div>
+
               <div>
                 <label className={labelClass}>Designation</label>
                 <input
@@ -188,18 +185,18 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* Assistant Account Fields */}
+          {/* Assistant Account Sections */}
           {isAssistant && (
             <>
               {/* Assistant Identity */}
               <div className="pt-2">
                 <h3 className={sectionTitle}>
                   <span className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">A</span>
-                  Assistant Details
+                  Assistant Details (Your Info)
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className={labelClass}>Assistant Name *</label>
+                    <label className={labelClass}>Assistant Full Name *</label>
                     <input
                       type="text"
                       required
@@ -210,7 +207,28 @@ export default function RegisterPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Role</label>
+                      <label className={labelClass}>Official Email *</label>
+                      <input
+                        type="email"
+                        required
+                        className={inputClass}
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Employee ID (Unique)</label>
+                      <input
+                        type="text"
+                        className={inputClass}
+                        value={formData.employeeId}
+                        onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Your Role (e.g. PA, Secretary)</label>
                       <input
                         type="text"
                         className={inputClass}
@@ -219,7 +237,7 @@ export default function RegisterPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Contact</label>
+                      <label className={labelClass}>Contact Info</label>
                       <input
                         type="text"
                         className={inputClass}
@@ -235,11 +253,11 @@ export default function RegisterPage() {
               <div className="pt-2">
                 <h3 className={sectionTitle}>
                   <span className="w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-xs font-bold">P</span>
-                  Principal Details
+                  Principal Details (Whose behalf you write)
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className={labelClass}>Principal Name</label>
+                    <label className={labelClass}>Principal Name (The Authority)</label>
                     <input
                       type="text"
                       className={inputClass}
@@ -280,7 +298,7 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className={labelClass}>Password</label>
+            <label className={labelClass}>Account Password</label>
             <input
               type="password"
               required
