@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { generateLetterPDF } from '../lib/pdfGenerator';
+import { generateId } from '../lib/generateId';
 import geoip from 'geoip-lite';
 import requestIp from 'request-ip';
 
@@ -18,6 +19,15 @@ const SENDER_SELECT_FIELDS = {
   employeeId: true, 
   defaultAddress: true, 
   email: true 
+};
+
+const DRAFTER_SELECT_FIELDS = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  employeeId: true,
+  designation: true,
 };
 
 export const createLetter = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -38,7 +48,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
       copyTo
     });
     const hash = crypto.createHash('sha256').update(letterContent).digest('hex');
-    const tempId = (Date.now().toString(36) + crypto.randomBytes(8).toString('hex')).substring(0, 24);
+    const tempId = generateId();
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
     // Start the database creation
@@ -46,6 +56,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
       data: {
         id: tempId,
         senderId,
+        draftedById: req.user.id,
         refNo,
         date: new Date(date),
         recipientName,
@@ -59,6 +70,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
       },
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
+        draftedBy: { select: DRAFTER_SELECT_FIELDS },
         _count: { select: { scanLogs: true } },
       }
     });
@@ -101,6 +113,7 @@ export const getLetters = async (req: AuthRequest, res: Response): Promise<void>
       orderBy: { createdAt: 'desc' },
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
+        draftedBy: { select: DRAFTER_SELECT_FIELDS },
         _count: { select: { scanLogs: true } },
       },
     });
@@ -117,6 +130,7 @@ export const getLetterById = async (req: AuthRequest, res: Response): Promise<vo
       where: { id },
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
+        draftedBy: { select: DRAFTER_SELECT_FIELDS },
         scanLogs: { orderBy: { scannedAt: 'desc' }, take: 10 },
       },
     });
@@ -166,7 +180,7 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
     const deviceInfo = req.headers['user-agent'] || 'Unknown';
 
     await prisma.scanLog.create({
-      data: { letterId: letter.id, ipAddress: clientIp, location, deviceInfo },
+      data: { id: generateId(), letterId: letter.id, ipAddress: clientIp, location, deviceInfo },
     });
 
     // Real-time push notification

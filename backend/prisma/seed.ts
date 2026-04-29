@@ -1,5 +1,6 @@
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { generateId } from '../src/lib/generateId';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,7 @@ async function main() {
       defaultAddress: "123 Business Rd\nTech Park\nCity-100001",
     },
     create: {
+      id: generateId(),
       name: 'John Doe',
       email: 'admin@organization.com',
       employeeId: 'EMP-001',

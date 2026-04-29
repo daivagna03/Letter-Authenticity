@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { Role } from '@prisma/client';
+import { generateId } from '../lib/generateId';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
 
@@ -41,6 +42,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
+        id: generateId(),
         name,
         email,
         employeeId,
@@ -190,6 +192,7 @@ export const createOperator = async (req: AuthRequest, res: Response): Promise<v
     const passwordHash = await bcrypt.hash(password, 10);
     const operator = await prisma.user.create({
       data: {
+        id: generateId(),
         name,
         email,
         passwordHash,

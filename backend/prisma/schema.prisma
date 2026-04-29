@@ -11,7 +11,7 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
+  id            String   @id
   name          String
   role          Role     @default(PRIMARY)
   email         String   @unique
@@ -29,7 +29,8 @@ model User {
   parentUser    User?    @relation("UserToOperator", fields: [parentUserId], references: [id])
   operators     User[]   @relation("UserToOperator")
 
-  letters       Letter[]
+  letters       Letter[]  @relation("LetterSender")
+  draftedLetters Letter[]  @relation("LetterDrafter")
   createdAt     DateTime @default(now())
 }
 
@@ -40,9 +41,11 @@ enum Role {
 }
 
 model Letter {
-  id              String    @id @default(uuid())
+  id              String    @id
   senderId        String
-  sender          User      @relation(fields: [senderId], references: [id])
+  sender          User      @relation("LetterSender", fields: [senderId], references: [id])
+  draftedById     String?
+  draftedBy       User?     @relation("LetterDrafter", fields: [draftedById], references: [id])
   refNo           String    @unique
   date            DateTime
   recipientName   String
@@ -59,7 +62,7 @@ model Letter {
 }
 
 model ScanLog {
-  id          String   @id @default(uuid())
+  id          String   @id
   letterId    String
   letter      Letter   @relation(fields: [letterId], references: [id], onDelete: Cascade)
   scannedAt   DateTime @default(now())
