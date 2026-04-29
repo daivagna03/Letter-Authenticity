@@ -82,13 +82,13 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] py-12 px-4">
       <div className="max-w-lg w-full p-8 bg-white rounded-2xl shadow-xl border border-slate-100">
         <div className="text-center mb-8">
-          <div className="inline-block p-3 rounded-xl bg-indigo-50 text-indigo-600 mb-4">
+          <div className="inline-block p-4 rounded-2xl bg-indigo-600 text-white mb-4 shadow-lg shadow-indigo-100">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-slate-900">Create Official Account</h2>
-          <p className="text-slate-500 mt-2">Register to manage your secure communications</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">DocVerify</h2>
+          <p className="text-slate-500 mt-2 font-medium">Official Document Authenticity Portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
