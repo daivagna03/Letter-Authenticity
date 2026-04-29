@@ -25,6 +25,8 @@ const SENDER_SELECT_FIELDS = {
   principalDesignation: true,
   principalOrganization: true,
   principalAddress: true,
+  principalSignatureUrl: true,
+  principalSealUrl: true,
 };
 
 const DRAFTER_SELECT_FIELDS = {
@@ -222,12 +224,20 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
       notificationMessage = `Suspicious activity: Scans from different locations for letter ${letter.refNo}.`;
     }
 
-    io.to(letter.senderId).emit('notification', {
+    const payload = {
       type: scanCount === 1 ? 'INFO' : 'WARNING',
       message: notificationMessage,
       letterId: letter.id,
       timestamp: new Date(),
-    });
+    };
+
+    // Notify the Primary/Assistant Account
+    io.to(letter.senderId).emit('notification', payload);
+
+    // Notify the Operator who drafted the letter (if different)
+    if (letter.draftedById && letter.draftedById !== letter.senderId) {
+      io.to(letter.draftedById).emit('notification', payload);
+    }
 
     res.json({
       status: isAuthentic ? 'AUTHENTIC' : 'TAMPERED',

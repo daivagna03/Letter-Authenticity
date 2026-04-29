@@ -317,12 +317,17 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
 
                   <!-- Footer Row -->
                   <div class="footer-row">
-                    <!-- Signature -->
-                    <div class="signature-block">
-                      <div>Yours sincerely,</div>
-                      <div class="signature-space"></div>
-                      <div class="signature-name">${senderName}</div>
-                      <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
+                    <!-- Signature & Seal -->
+                    <div style="position: relative; flex: 1;">
+                      <div class="signature-block">
+                        <div>Yours sincerely,</div>
+                        <div class="signature-space" style="position: relative; height: 80px; display: flex; align-items: center;">
+                          ${isAssistant && sender.principalSignatureUrl ? `<img src="${sender.principalSignatureUrl}" style="height: 60px; max-width: 200px; object-fit: contain; mix-blend-mode: multiply; position: relative; z-index: 2;" />` : ''}
+                          ${isAssistant && sender.principalSealUrl ? `<img src="${sender.principalSealUrl}" style="height: 80px; width: 80px; object-fit: contain; opacity: 0.8; position: absolute; left: 40px; top: 0; z-index: 1;" />` : ''}
+                        </div>
+                        <div class="signature-name">${senderName}</div>
+                        <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
+                      </div>
                     </div>
 
                     <!-- QR Code -->

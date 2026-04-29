@@ -24,7 +24,8 @@ interface LetterRendererProps {
     principalName?: string;
     principalDesignation?: string;
     principalOrganization?: string;
-    principalAddress?: string;
+    principalSignatureUrl?: string;
+    principalSealUrl?: string;
   } | null;
 }
 
@@ -174,13 +175,22 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
 
         {/* === Footer Row === */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', pageBreakInside: 'avoid' }}>
-          {/* === Signature Block === */}
-          <div style={{ fontSize: '14px' }}>
-            <div>Yours sincerely,</div>
-            <div style={{ height: '70px' }}></div>
-            <div style={{ fontWeight: 'bold' }}>{senderName}</div>
-            <div style={{ fontSize: '13px' }}>
-              {designation}{organization ? `, ${organization}` : ''}
+          {/* === Signature & Seal === */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <div style={{ fontSize: '14px' }}>
+              <div>Yours sincerely,</div>
+              <div style={{ position: 'relative', height: '80px', display: 'flex', alignItems: 'center' }}>
+                {isAssistant && user?.principalSignatureUrl ? (
+                  <img src={user.principalSignatureUrl} style={{ height: '60px', maxWidth: '200px', objectFit: 'contain', mixBlendMode: 'multiply', position: 'relative', z-index: 2 }} alt="Signature" />
+                ) : null}
+                {isAssistant && user?.principalSealUrl ? (
+                  <img src={user.principalSealUrl} style={{ height: '80px', width: '80px', objectFit: 'contain', opacity: 0.8, position: 'absolute', left: '40px', top: 0, z-index: 1 }} alt="Seal" />
+                ) : null}
+              </div>
+              <div style={{ fontWeight: 'bold' }}>{senderName}</div>
+              <div style={{ fontSize: '13px' }}>
+                {designation}{organization ? `, ${organization}` : ''}
+              </div>
             </div>
           </div>
 
