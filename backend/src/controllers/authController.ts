@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
-import { Role } from '@prisma/client';
+import { Role, AccountType } from '@prisma/client';
 import { generateId } from '../lib/generateId';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
@@ -13,17 +13,42 @@ const USER_SELECT_FIELDS = {
   name: true,
   email: true,
   role: true,
+  accountType: true,
   employeeId: true,
+  isActive: true,
+  // Principal details
+  principalName: true,
+  principalDesignation: true,
+  principalOrganization: true,
+  principalAddress: true,
+  principalSignatureUrl: true,
+  principalSealUrl: true,
+  // Assistant details
+  assistantName: true,
+  assistantRole: true,
+  assistantContact: true,
+  // Legacy / Regular fields
   designation: true,
   department: true,
   organization: true,
   defaultAddress: true,
+  // Operator fields
+  operatorRole: true,
   parentUserId: true,
   createdAt: true,
 };
 
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, email, password, employeeId, designation, department, organization } = req.body;
+  const {
+    name, email, password, employeeId,
+    accountType,
+    // Regular account fields
+    designation, department, organization,
+    // Assistant account fields
+    assistantName, assistantRole, assistantContact,
+    principalName, principalDesignation, principalOrganization, principalAddress,
+  } = req.body;
+
   try {
     const existingUser = await prisma.user.findFirst({
       where: {
@@ -39,6 +64,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const isAssistant = accountType === 'ASSISTANT';
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
@@ -47,24 +74,32 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         email,
         employeeId,
         passwordHash,
-        designation,
-        department,
-        organization,
         role: Role.PRIMARY,
+        accountType: isAssistant ? AccountType.ASSISTANT : AccountType.REGULAR,
+        // Regular fields
+        ...(designation && { designation }),
+        ...(department && { department }),
+        ...(organization && { organization }),
+        // Assistant fields
+        ...(isAssistant && assistantName && { assistantName }),
+        ...(isAssistant && assistantRole && { assistantRole }),
+        ...(isAssistant && assistantContact && { assistantContact }),
+        // Principal fields
+        ...(isAssistant && principalName && { principalName }),
+        ...(isAssistant && principalDesignation && { principalDesignation }),
+        ...(isAssistant && principalOrganization && { principalOrganization }),
+        ...(isAssistant && principalAddress && { principalAddress }),
       },
       select: USER_SELECT_FIELDS,
     });
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, accountType: user.accountType, parentUserId: null },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.status(201).json({
-      token,
-      user,
-    });
+    res.status(201).json({ token, user });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -72,7 +107,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body; // 'email' can now be email or employeeId
+  const { email, password } = req.body;
   try {
     const user = await prisma.user.findFirst({
       where: {
@@ -86,16 +121,25 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       res.status(401).json({ message: 'Invalid credentials' });
       return;
     }
+
+    // Block disabled operators
+    if (!user.isActive) {
+      res.status(403).json({ message: 'Your account has been disabled. Please contact your administrator.' });
+      return;
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       res.status(401).json({ message: 'Invalid credentials' });
       return;
     }
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, accountType: user.accountType, parentUserId: user.parentUserId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
     res.json({
       token,
       user: {
@@ -103,11 +147,27 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        accountType: user.accountType,
         employeeId: user.employeeId,
+        isActive: user.isActive,
+        // Principal details
+        principalName: user.principalName,
+        principalDesignation: user.principalDesignation,
+        principalOrganization: user.principalOrganization,
+        principalAddress: user.principalAddress,
+        principalSignatureUrl: user.principalSignatureUrl,
+        principalSealUrl: user.principalSealUrl,
+        // Assistant details
+        assistantName: user.assistantName,
+        assistantRole: user.assistantRole,
+        assistantContact: user.assistantContact,
+        // Regular / legacy fields
         designation: user.designation,
         department: user.department,
         organization: user.organization,
         defaultAddress: user.defaultAddress,
+        // Operator
+        operatorRole: user.operatorRole,
         parentUserId: user.parentUserId,
       },
     });
@@ -162,6 +222,55 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
+// Update assistant details
+export const updateAssistantDetails = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
+
+  const { assistantName, assistantRole, assistantContact } = req.body;
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        ...(assistantName !== undefined && { assistantName }),
+        ...(assistantRole !== undefined && { assistantRole }),
+        ...(assistantContact !== undefined && { assistantContact }),
+      },
+      select: USER_SELECT_FIELDS,
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Update assistant details error:', error);
+    res.status(500).json({ message: 'Failed to update assistant details' });
+  }
+};
+
+// Update principal details
+export const updatePrincipalDetails = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
+
+  const { principalName, principalDesignation, principalOrganization, principalAddress, principalSignatureUrl, principalSealUrl } = req.body;
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        ...(principalName !== undefined && { principalName }),
+        ...(principalDesignation !== undefined && { principalDesignation }),
+        ...(principalOrganization !== undefined && { principalOrganization }),
+        ...(principalAddress !== undefined && { principalAddress }),
+        ...(principalSignatureUrl !== undefined && { principalSignatureUrl }),
+        ...(principalSealUrl !== undefined && { principalSealUrl }),
+      },
+      select: USER_SELECT_FIELDS,
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Update principal details error:', error);
+    res.status(500).json({ message: 'Failed to update principal details' });
+  }
+};
+
 // Operator Management
 
 export const createOperator = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -170,7 +279,7 @@ export const createOperator = async (req: AuthRequest, res: Response): Promise<v
     return;
   }
 
-  const { name, email, password } = req.body;
+  const { name, email, password, operatorRole } = req.body;
 
   try {
     // Check limit
@@ -198,6 +307,7 @@ export const createOperator = async (req: AuthRequest, res: Response): Promise<v
         passwordHash,
         role: Role.OPERATOR,
         parentUserId: req.user.id,
+        ...(operatorRole && { operatorRole }),
       },
       select: USER_SELECT_FIELDS,
     });
@@ -224,6 +334,37 @@ export const getOperators = async (req: AuthRequest, res: Response): Promise<voi
   } catch (error) {
     console.error('Get operators error:', error);
     res.status(500).json({ message: 'Failed to fetch operators' });
+  }
+};
+
+export const toggleOperatorStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user || req.user.role !== 'PRIMARY') {
+    res.status(403).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  const operatorId = req.params['id'] as string;
+
+  try {
+    const operator = await prisma.user.findFirst({
+      where: { id: operatorId, parentUserId: req.user.id },
+    });
+
+    if (!operator) {
+      res.status(404).json({ message: 'Operator not found' });
+      return;
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: operatorId },
+      data: { isActive: !operator.isActive },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Toggle operator status error:', error);
+    res.status(500).json({ message: 'Failed to toggle operator status' });
   }
 };
 

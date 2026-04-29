@@ -70,11 +70,16 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
   const emblemBase64 = `data:image/svg+xml;base64,${Buffer.from(emblemSvg).toString('base64')}`;
 
   const sender = letter.sender;
-  const senderName = sender.name ? `Shri ${sender.name}` : '';
-  const designation = sender.designation || '';
-  const department = sender.department || '';
-  const organization = sender.organization || '';
-  const defaultAddress = sender.defaultAddress || '';
+  const isAssistant = sender.accountType === 'ASSISTANT';
+  
+  const senderName = isAssistant 
+    ? (sender.principalName ? `Shri ${sender.principalName}` : '') 
+    : (sender.name ? `Shri ${sender.name}` : '');
+    
+  const designation = isAssistant ? (sender.principalDesignation || '') : (sender.designation || '');
+  const department = isAssistant ? '' : (sender.department || ''); // Assistant mode doesn't use department usually
+  const organization = isAssistant ? (sender.principalOrganization || '') : (sender.organization || '');
+  const defaultAddress = isAssistant ? (sender.principalAddress || '') : (sender.defaultAddress || '');
   const senderEmail = sender.email || '';
 
   // Parse address into structured lines

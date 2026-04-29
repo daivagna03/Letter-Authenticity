@@ -14,19 +14,31 @@ interface LetterRendererProps {
   user: {
     name: string;
     email?: string;
+    role?: string;
+    accountType?: string;
     designation?: string;
     department?: string;
     organization?: string;
     defaultAddress?: string;
+    // Assistant mode fields
+    principalName?: string;
+    principalDesignation?: string;
+    principalOrganization?: string;
+    principalAddress?: string;
   } | null;
 }
 
 export default function LetterRenderer({ letter, user }: LetterRendererProps) {
-  const senderName = user ? `Shri ${user.name}` : 'Shri Member Name';
-  const designation = user?.designation || '';
-  const department = user?.department || '';
-  const organization = user?.organization || '';
-  const defaultAddress = user?.defaultAddress || '';
+  const isAssistant = user?.accountType === 'ASSISTANT';
+
+  const senderName = isAssistant 
+    ? (user?.principalName ? `Shri ${user.principalName}` : 'Shri Principal Name')
+    : (user ? `Shri ${user.name}` : 'Shri Member Name');
+
+  const designation = isAssistant ? (user?.principalDesignation || '') : (user?.designation || '');
+  const department = isAssistant ? '' : (user?.department || '');
+  const organization = isAssistant ? (user?.principalOrganization || '') : (user?.organization || '');
+  const defaultAddress = isAssistant ? (user?.principalAddress || '') : (user?.defaultAddress || '');
   const senderEmail = user?.email || '';
 
   const parsedBody = letter.body ? letter.body.split('\n').filter(p => p.trim() !== '') : [];

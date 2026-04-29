@@ -146,7 +146,12 @@ export default function DashboardPage() {
           <div className="px-4 mb-4">
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">User Info</p>
             <p className="font-semibold mt-1 truncate">{user?.name}</p>
-            <p className="text-sm text-slate-400">{user?.role === 'PRIMARY' ? 'Primary Account' : 'Operator'}</p>
+            <p className="text-sm text-slate-400">
+              {user?.role === 'OPERATOR' ? 'Operator' : user?.accountType === 'ASSISTANT' ? 'Assistant Account' : 'Primary Account'}
+            </p>
+            {user?.accountType === 'ASSISTANT' && user?.principalName && (
+              <p className="text-xs text-indigo-400 mt-1 truncate">Principal: {user.principalName}</p>
+            )}
           </div>
           <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,6 +205,15 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{letter.refNo}</span>
                                 <span className="text-xs text-slate-400">• {new Date(letter.createdAt).toLocaleDateString()}</span>
+                                {letter.draftedBy && (
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                    letter.draftedBy.id === user?.id
+                                      ? 'bg-emerald-50 text-emerald-600'
+                                      : 'bg-amber-50 text-amber-600'
+                                  }`}>
+                                    {letter.draftedBy.id === user?.id ? '✓ You' : `By: ${letter.draftedBy.name}`}
+                                  </span>
+                                )}
                               </div>
                               <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-all">{letter.subject}</h4>
                               <p className="text-sm text-slate-500 truncate max-w-md">To: {letter.recipientName}</p>

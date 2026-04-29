@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, AccountType } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { generateId } from '../src/lib/generateId';
 
@@ -22,6 +22,7 @@ async function main() {
       employeeId: 'EMP-001',
       passwordHash,
       role: Role.PRIMARY,
+      accountType: AccountType.REGULAR,
       designation: 'General Manager',
       department: 'Operations',
       organization: 'Acme Corp',

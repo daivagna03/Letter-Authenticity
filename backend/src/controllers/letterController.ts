@@ -13,12 +13,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
 const SENDER_SELECT_FIELDS = { 
   name: true, 
   role: true, 
+  accountType: true,
   designation: true, 
   department: true, 
   organization: true, 
   employeeId: true, 
   defaultAddress: true, 
-  email: true 
+  email: true,
+  // Principal details (for assistant accounts)
+  principalName: true,
+  principalDesignation: true,
+  principalOrganization: true,
+  principalAddress: true,
 };
 
 const DRAFTER_SELECT_FIELDS = {
@@ -28,6 +34,9 @@ const DRAFTER_SELECT_FIELDS = {
   role: true,
   employeeId: true,
   designation: true,
+  operatorRole: true,
+  assistantName: true,
+  assistantRole: true,
 };
 
 export const createLetter = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -35,6 +44,14 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
 
   const senderId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
+
+  // Determine who created this letter
+  const createdByType = req.user.role === 'OPERATOR' ? 'operator' : 'assistant';
+
+  // Capture creator's IP and location
+  const creatorIp = requestIp.getClientIp(req);
+  const geo = creatorIp ? geoip.lookup(creatorIp) : null;
+  const creatorLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown';
 
   try {
     const letterContent = JSON.stringify({
@@ -67,6 +84,10 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         copyTo,
         hash,
         qrToken,
+        // Audit trail
+        createdByType,
+        creatorIpAddress: creatorIp,
+        creatorLocation,
       },
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
@@ -105,6 +126,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
 export const getLetters = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
   
+  // Operators see ALL letters under their parent account (same as before)
   const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
   
   try {
@@ -175,8 +197,8 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
 
     // Log the scan
     const clientIp = requestIp.getClientIp(req);
-    const geo = clientIp ? geoip.lookup(clientIp) : null;
-    const location = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown';
+    const scanGeo = clientIp ? geoip.lookup(clientIp) : null;
+    const location = scanGeo ? `${scanGeo.city}, ${scanGeo.region}, ${scanGeo.country}` : 'Unknown';
     const deviceInfo = req.headers['user-agent'] || 'Unknown';
 
     await prisma.scanLog.create({

@@ -9,11 +9,27 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  accountType?: string;
   employeeId?: string;
+  isActive?: boolean;
+  // Principal details
+  principalName?: string;
+  principalDesignation?: string;
+  principalOrganization?: string;
+  principalAddress?: string;
+  principalSignatureUrl?: string;
+  principalSealUrl?: string;
+  // Assistant details
+  assistantName?: string;
+  assistantRole?: string;
+  assistantContact?: string;
+  // Regular / legacy fields
   designation?: string;
   department?: string;
   organization?: string;
   defaultAddress?: string;
+  // Operator
+  operatorRole?: string;
   parentUserId?: string;
 }
 
@@ -25,6 +41,8 @@ interface AuthContextType {
   register: (data: any) => Promise<void>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  updateAssistantDetails: (data: any) => Promise<void>;
+  updatePrincipalDetails: (data: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,8 +104,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.data);
   };
 
+  const updateAssistantDetails = async (data: any) => {
+    const res = await api.put('/auth/assistant', data);
+    setUser(res.data);
+  };
+
+  const updatePrincipalDetails = async (data: any) => {
+    const res = await api.put('/auth/principal', data);
+    setUser(res.data);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile, updateAssistantDetails, updatePrincipalDetails }}>
       {children}
     </AuthContext.Provider>
   );

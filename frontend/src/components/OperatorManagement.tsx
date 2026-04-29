@@ -6,7 +6,7 @@ import api from '@/lib/api';
 export default function OperatorManagement() {
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', operatorRole: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -32,7 +32,7 @@ export default function OperatorManagement() {
     try {
       await api.post('/auth/operators', formData);
       setSuccess('Operator created successfully!');
-      setFormData({ name: '', email: '', password: '' });
+      setFormData({ name: '', email: '', password: '', operatorRole: '' });
       fetchOperators();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
@@ -40,8 +40,17 @@ export default function OperatorManagement() {
     }
   };
 
+  const handleToggleStatus = async (id: string) => {
+    try {
+      await api.patch(`/auth/operators/${id}/status`);
+      fetchOperators();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to toggle status');
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this operator?')) return;
+    if (!confirm('Are you sure you want to remove this operator? This action cannot be undone.')) return;
     try {
       await api.delete(`/auth/operators/${id}`);
       fetchOperators();
@@ -71,9 +80,15 @@ export default function OperatorManagement() {
               <input required type="email" className={inputClass} value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
             </div>
           </div>
-          <div>
-            <label className={labelClass}>Password</label>
-            <input required type="password" minLength={6} className={inputClass} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Password</label>
+              <input required type="password" minLength={6} className={inputClass} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+            </div>
+            <div>
+              <label className={labelClass}>Role</label>
+              <input className={inputClass} value={formData.operatorRole} onChange={(e) => setFormData({...formData, operatorRole: e.target.value})} />
+            </div>
           </div>
           <button type="submit" disabled={operators.length >= 3} className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold disabled:opacity-50">
             {operators.length >= 3 ? 'Limit Reached (3/3)' : 'Create Operator'}
@@ -94,14 +109,44 @@ export default function OperatorManagement() {
         ) : (
           <div className="space-y-3">
             {operators.map((op: any) => (
-              <div key={op.id} className="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-                <div>
-                  <p className="font-bold text-slate-800">{op.name}</p>
-                  <p className="text-xs text-slate-500">{op.email}</p>
+              <div key={op.id} className={`flex justify-between items-center p-4 bg-white border rounded-xl shadow-sm transition-all ${!op.isActive ? 'border-red-200 opacity-70' : 'border-slate-200'}`}>
+                <div className="flex items-center gap-3">
+                  {/* Status indicator */}
+                  <div className={`w-2.5 h-2.5 rounded-full ${op.isActive ? 'bg-emerald-500' : 'bg-red-400'}`}></div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-slate-800">{op.name}</p>
+                      {op.operatorRole && (
+                        <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wider">{op.operatorRole}</span>
+                      )}
+                      {!op.isActive && (
+                        <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded uppercase tracking-wider">Disabled</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500">{op.email}</p>
+                  </div>
                 </div>
-                <button onClick={() => handleDelete(op.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all text-sm font-semibold">
-                  Remove
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Status Toggle */}
+                  <button
+                    onClick={() => handleToggleStatus(op.id)}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                      op.isActive
+                        ? 'text-amber-600 hover:bg-amber-50 border border-amber-200'
+                        : 'text-emerald-600 hover:bg-emerald-50 border border-emerald-200'
+                    }`}
+                    title={op.isActive ? 'Disable operator' : 'Enable operator'}
+                  >
+                    {op.isActive ? 'Disable' : 'Enable'}
+                  </button>
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDelete(op.id)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all text-sm font-semibold"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
           </div>

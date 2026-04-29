@@ -11,33 +11,56 @@ datasource db {
 }
 
 model User {
-  id            String   @id
+  id            String      @id
   name          String
-  role          Role     @default(PRIMARY)
-  email         String   @unique
-  employeeId    String?  @unique
+  role          Role        @default(PRIMARY)
+  accountType   AccountType @default(REGULAR)
+  email         String      @unique
+  employeeId    String?     @unique
   passwordHash  String
-  
-  // Configuration fields
+  isActive      Boolean     @default(true)
+
+  // Principal details (on whose behalf letters are written — for ASSISTANT accounts)
+  principalName         String?
+  principalDesignation  String?
+  principalOrganization String?
+  principalAddress      String?
+  principalSignatureUrl String?
+  principalSealUrl      String?
+
+  // Assistant details (the actual person operating the system)
+  assistantName    String?
+  assistantRole    String?
+  assistantContact String?
+
+  // Configuration fields (used by REGULAR accounts & backward compatibility)
   designation   String?
   department    String?
   organization  String?
   defaultAddress String?
-  
+
   // Operator relations
   parentUserId  String?
   parentUser    User?    @relation("UserToOperator", fields: [parentUserId], references: [id])
   operators     User[]   @relation("UserToOperator")
 
-  letters       Letter[]  @relation("LetterSender")
+  // Operator-specific fields
+  operatorRole  String?   // e.g., "Data Entry Operator", "Clerk"
+
+  letters        Letter[]  @relation("LetterSender")
   draftedLetters Letter[]  @relation("LetterDrafter")
-  createdAt     DateTime @default(now())
+  createdAt      DateTime  @default(now())
 }
 
 enum Role {
   PRIMARY
   OPERATOR
   ADMIN
+}
+
+enum AccountType {
+  REGULAR
+  ASSISTANT
 }
 
 model Letter {
@@ -57,6 +80,12 @@ model Letter {
   hash            String    
   qrToken         String    @unique 
   pdfData         Bytes?
+
+  // Audit trail
+  createdByType    String?   // "assistant" | "operator"
+  creatorIpAddress String?
+  creatorLocation  String?
+
   scanLogs        ScanLog[]
   createdAt       DateTime  @default(now())
 }
