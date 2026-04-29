@@ -47,7 +47,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register({
-        name: formData.name,
+        name: isAssistant ? formData.assistantName : formData.name,
         email: formData.email,
         password: formData.password,
         employeeId: formData.employeeId || undefined,
@@ -119,16 +119,18 @@ export default function RegisterPage() {
           </div>
           
           {/* Basic Info */}
-          <div>
-            <label className={labelClass}>Full Name</label>
-            <input
-              type="text"
-              required
-              className={inputClass}
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
+          {!isAssistant && (
+            <div>
+              <label className={labelClass}>Full Name</label>
+              <input
+                type="text"
+                required
+                className={inputClass}
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+              />
+            </div>
+          )}
 
           <div>
             <label className={labelClass}>Official Email</label>
