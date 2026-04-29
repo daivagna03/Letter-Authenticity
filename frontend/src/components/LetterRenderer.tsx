@@ -24,6 +24,7 @@ interface LetterRendererProps {
     principalName?: string;
     principalDesignation?: string;
     principalOrganization?: string;
+    principalAddress?: string;
     principalSignatureUrl?: string;
     principalSealUrl?: string;
   } | null;
@@ -42,11 +43,11 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
   const defaultAddress = isAssistant ? (user?.principalAddress || '') : (user?.defaultAddress || '');
   const senderEmail = user?.email || '';
 
-  const parsedBody = letter.body ? letter.body.split('\n').filter(p => p.trim() !== '') : [];
+  const parsedBody = letter.body ? letter.body.split('\n').filter((p: string) => p.trim() !== '') : [];
 
   // Parse address into structured lines
   const addressLines = defaultAddress
-    ? defaultAddress.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+    ? defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
     : [];
 
   return (
@@ -105,7 +106,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.6, marginTop: '2px' }}>
           <div style={{ textAlign: 'right', maxWidth: '250px' }}>
             {addressLines.length > 0 ? (
-              addressLines.map((line, idx) => (
+              addressLines.map((line: string, idx: number) => (
                 <div key={idx}>{line}{idx < addressLines.length - 1 ? ',' : ''}</div>
               ))
             ) : (
@@ -181,10 +182,10 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
               <div>Yours sincerely,</div>
               <div style={{ position: 'relative', height: '80px', display: 'flex', alignItems: 'center' }}>
                 {isAssistant && user?.principalSignatureUrl ? (
-                  <img src={user.principalSignatureUrl} style={{ height: '60px', maxWidth: '200px', objectFit: 'contain', mixBlendMode: 'multiply', position: 'relative', z-index: 2 }} alt="Signature" />
+                  <img src={user.principalSignatureUrl} style={{ height: '60px', maxWidth: '200px', objectFit: 'contain', mixBlendMode: 'multiply', position: 'relative', zIndex: 2 }} alt="Signature" />
                 ) : null}
                 {isAssistant && user?.principalSealUrl ? (
-                  <img src={user.principalSealUrl} style={{ height: '80px', width: '80px', objectFit: 'contain', opacity: 0.8, position: 'absolute', left: '40px', top: 0, z-index: 1 }} alt="Seal" />
+                  <img src={user.principalSealUrl} style={{ height: '80px', width: '80px', objectFit: 'contain', opacity: 0.8, position: 'absolute', left: '40px', top: 0, zIndex: 1 }} alt="Seal" />
                 ) : null}
               </div>
               <div style={{ fontWeight: 'bold' }}>{senderName}</div>
