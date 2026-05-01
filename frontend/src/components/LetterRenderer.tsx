@@ -162,39 +162,40 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
     return (
       <div style={pageStyle}>
         {/* Centered header: Emblem + bold org + dept */}
-        <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '1.5px solid #000', paddingBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-            <img src={EMBLEM_URL} alt="Emblem" style={{ width: '60px', height: 'auto' }} />
+        <div style={{ textAlign: 'center', marginBottom: '12px', borderBottom: '1px solid #000', paddingBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+            <img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px', height: 'auto' }} />
           </div>
-          <div style={{ fontSize: '17px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.4, color: '#000', letterSpacing: '0.5px' }}>{orgName}</div>
-          {deptName && <div style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px' }}>({deptName})</div>}
-          {defaultAddress && <div style={{ fontSize: '12px', marginTop: '6px', color: '#444' }}>{defaultAddress.replace(/\n/g, ', ')}</div>}
+          <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.2, color: '#000' }}>{orgName}</div>
+          {deptName && <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px' }}>({deptName})</div>}
+          {defaultAddress && <div style={{ fontSize: '11px', marginTop: '4px', color: '#333' }}>{defaultAddress.replace(/\n/g, ', ')}</div>}
         </div>
-        <div style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', textDecoration: 'underline', margin: '24px 0 32px', letterSpacing: '4px' }}>ORDER</div>
+        <div style={{ textAlign: 'center', fontSize: '16px', fontWeight: 'bold', textDecoration: 'underline', margin: '16px 0 20px', letterSpacing: '3px' }}>ORDER</div>
         <div style={{ textAlign: 'justify' }}>
-          {parsedBody.length > 0 ? parsedBody.map((p, i) => <p key={i} style={{ lineHeight: 1.75, marginBottom: '18px', fontSize: '14px', color: '#000' }}>{p}</p>)
+          {parsedBody.length > 0 ? parsedBody.map((p, i) => <p key={i} style={{ lineHeight: 1.5, marginBottom: '10px', fontSize: '13px', color: '#000' }}>{p}</p>)
             : <p style={{ color: '#aaa', fontStyle: 'italic' }}>[Order body will appear here]</p>}
         </div>
         {/* Signature right-aligned */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <div style={{ textAlign: 'right', fontSize: '13px' }}>
-            <div style={{ height: '50px' }}>
+            <div style={{ height: '45px' }}>
               {effectiveUser?.signatureUrl && (
-                <img src={effectiveUser.signatureUrl} alt="Signature" style={{ height: '50px', maxWidth: '200px', objectFit: 'contain' }} />
+                <img src={effectiveUser.signatureUrl} alt="Signature" style={{ height: '45px', maxWidth: '200px', objectFit: 'contain' }} />
               )}
             </div>
-            <div style={{ fontWeight: 'bold' }}>({effectiveUser?.name || ''})</div>
+            <div style={{ fontWeight: 'bold', fontSize: '14px' }}>({effectiveUser?.name || ''})</div>
             <div>{designation}</div>
             {organization && <div>{organization}</div>}
+            <div style={{ fontSize: '12px', marginTop: '2px', color: '#333' }}>Dated: {formatDate(letter.date)}</div>
           </div>
         </div>
         <QRPlaceholder />
         {/* Memo No. and Copy section BELOW signature */}
-        <div style={{ marginTop: '32px', fontSize: '13px', lineHeight: 1.8 }}>
+        <div style={{ marginTop: '20px', fontSize: '12px', lineHeight: 1.6 }}>
           <div>Memo No. {letter.memoNo || letter.refNo || ''},</div>
           <div style={{ fontWeight: 'bold', marginTop: '4px' }}>Copy for kind information and necessary action to:</div>
           {(letter.orderCopyList || []).length > 0 ? (
-            <ol style={{ margin: '6px 0 0 18px', lineHeight: 1.7 }}>
+            <ol style={{ margin: '6px 0 0 18px', lineHeight: 1.6 }}>
               {(letter.orderCopyList || []).map((item, i) => <li key={i}>{item}</li>)}
             </ol>
           ) : <div style={{ color: '#aaa', marginTop: '4px' }}>[Copy recipients]</div>}
