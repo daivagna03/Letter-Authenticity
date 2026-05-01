@@ -217,15 +217,17 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
 
   return `<!DOCTYPE html><html><head><style>
     ${BASE_CSS}
-    .order-header { text-align:center; margin-bottom:12px; border-bottom:1px solid #999; padding-bottom:12px; }
-    .order-header .org-name { font-size:15px; font-weight:bold; text-transform:uppercase; line-height:1.5; }
-    .order-header .dept-name { font-size:13px; font-weight:bold; text-transform:uppercase; }
-    .order-header .address-line { font-size:12px; margin-top:4px; }
-    .order-title { text-align:center; font-size:16px; font-weight:bold; text-decoration:underline; margin:16px 0 20px; letter-spacing:2px; }
-    .order-body p { text-align:justify; line-height:1.7; margin-bottom:14px; font-size:13px; }
-    .memo-section { margin-top:24px; font-size:12px; line-height:1.8; }
-    .signature-right { text-align:right; font-size:13px; margin-top:24px; display:flex; justify-content:flex-end; }
-    .signature-right .sig-space { height:60px; }
+    .order-header { text-align:center; margin-bottom:24px; border-bottom:1.5px solid #000; padding-bottom:16px; font-family:'Times New Roman',serif; }
+    .order-header .org-name { font-size:17px; font-weight:bold; text-transform:uppercase; line-height:1.4; color:#000; letter-spacing:0.5px; }
+    .order-header .dept-name { font-size:14px; font-weight:bold; text-transform:uppercase; margin-top:2px; color:#000; }
+    .order-header .address-line { font-size:12px; margin-top:6px; color:#444; font-weight:500; }
+    .order-title { text-align:center; font-size:18px; font-weight:bold; text-decoration:underline; margin:24px 0 32px; letter-spacing:4px; font-family:'Times New Roman',serif; }
+    .order-body p { text-align:justify; line-height:1.75; margin-bottom:18px; font-size:14px; color:#000; }
+    .memo-section { margin-top:32px; font-size:13px; line-height:1.8; color:#000; }
+    .signature-right { text-align:right; font-size:14px; margin-top:32px; display:flex; justify-content:flex-end; }
+    .signature-right .sig-space { height:65px; }
+    .signature-right .sig-name { font-weight:bold; font-size:15px; margin-bottom:2px; }
+    .signature-right .sig-date { font-size:13px; margin-top:4px; color:#333; }
   </style></head>
   <body>
     <div class="order-header">
@@ -244,17 +246,17 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
     <div class="signature-right">
       <div>
         <div class="sig-space"></div>
-        <div style="font-weight:bold;">(${sender.name || ''})</div>
+        <div class="sig-name">(${sender.name || ''})</div>
         <div>${sender.designation || ''}</div>
         ${orgName ? `<div>${orgName}</div>` : ''}
-        <div>Dated ${new Date(letter.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div class="sig-date">Dated: ${new Date(letter.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
       </div>
     </div>
     <div class="qr-fixed"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>
 
     <div class="memo-section">
-      Memo No. E ${letter.memoNo || letter.refNo} -A,<br>
-      Copy for kind information and necessary action to:
+      <div>Memo No. ${letter.memoNo || letter.refNo || ''},</div>
+      <div style="font-weight:bold;margin-top:4px;">Copy for kind information and necessary action to:</div>
       ${copyListHtml}
     </div>
   </body></html>`;
