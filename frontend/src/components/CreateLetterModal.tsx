@@ -40,6 +40,9 @@ export default function CreateLetterModal({
     // District Order specific
     memoNo: '',
     orderCopyItems: [''],
+    // District Order header fields
+    districtOrgName: '',
+    districtDeptName: '',
     // MPLAD specific
     mplaadRows: [{ priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' as const }] as MplaadRow[],
     mplaadOpeningPara: 'I recommend that the following works may please be scrutinized and sanctioned from the MPLADS fund:',
@@ -57,7 +60,8 @@ export default function CreateLetterModal({
       date: new Date().toISOString().split('T')[0],
       recipientName: '', recipientDesignation: '', recipientAddressDetail: '',
       subject: '', body: '', signatureBlock: '', copyTo: '',
-    memoNo: '', orderCopyItems: [''],
+      memoNo: '', orderCopyItems: [''],
+      districtOrgName: '', districtDeptName: '',
       mplaadRows: [{ priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' as const }],
     }));
     setError('');
@@ -88,6 +92,8 @@ export default function CreateLetterModal({
       if (templateSlug === 'district-order') {
         payload.memoNo = formData.memoNo || undefined;
         payload.orderCopyList = formData.orderCopyItems.filter(item => item.trim() !== '');
+        payload.districtOrgName = formData.districtOrgName || undefined;
+        payload.districtDeptName = formData.districtDeptName || undefined;
       }
 
       if (templateSlug === 'mplad') {
@@ -206,8 +212,16 @@ export default function CreateLetterModal({
                     </div>
                   </div>
                   <div>
-                    <label className={labelClass}>Memo No. (e.g. E 66571/MJ/1164/2023)</label>
-                    <input className={inputClass} value={formData.memoNo} onChange={(e) => setFormData({ ...formData, memoNo: e.target.value })} placeholder="E 66571/MJ/1164/2023-MAG-CACH/A" />
+                    <label className={labelClass}>Organization Name (Bold Header)</label>
+                    <input className={inputClass} value={formData.districtOrgName} onChange={(e) => setFormData({ ...formData, districtOrgName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Department / Branch Name</label>
+                    <input className={inputClass} value={formData.districtDeptName} onChange={(e) => setFormData({ ...formData, districtDeptName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Memo No.</label>
+                    <input className={inputClass} value={formData.memoNo} onChange={(e) => setFormData({ ...formData, memoNo: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>Subject</label>
@@ -215,7 +229,7 @@ export default function CreateLetterModal({
                   </div>
                   <div>
                     <label className={labelClass}>Order Body</label>
-                    <textarea required rows={8} className={`${inputClass} font-serif`} value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} placeholder="Write the order content here. Each new line becomes a paragraph." />
+                    <textarea required rows={8} className={`${inputClass} font-serif`} value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>Copy for kind information to: (numbered list)</label>
@@ -349,6 +363,8 @@ export default function CreateLetterModal({
                   templateSlug,
                   mplaadTableData: formData.mplaadRows,
                   orderCopyList: formData.orderCopyItems.filter(i => i.trim()),
+                  districtOrgName: formData.districtOrgName,
+                  districtDeptName: formData.districtDeptName,
                 }}
                 user={user as any}
               />

@@ -180,8 +180,8 @@ function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64
 // ── TEMPLATE: DISTRICT ORDER ───────────────────────────────────────────────────
 function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64: string): string {
   const sender = letter.sender;
-  const orgName = sender.organization || '';
-  const department = sender.department || '';
+  const orgName = letter.districtOrgName || sender.organization || '';
+  const deptName = letter.districtDeptName || sender.department || '';
   const defaultAddress = sender.defaultAddress || '';
 
   const parsedBody = parseBodyToParagraphs(letter.body);
@@ -198,17 +198,15 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
 
   return `<!DOCTYPE html><html><head><style>
     ${BASE_CSS}
-    .order-header { text-align:center; margin-bottom:18px; }
+    .order-header { text-align:center; margin-bottom:12px; border-bottom:1px solid #999; padding-bottom:12px; }
     .order-header .org-name { font-size:15px; font-weight:bold; text-transform:uppercase; line-height:1.5; }
     .order-header .dept-name { font-size:13px; font-weight:bold; text-transform:uppercase; }
     .order-header .address-line { font-size:12px; margin-top:4px; }
     .order-title { text-align:center; font-size:16px; font-weight:bold; text-decoration:underline; margin:16px 0 20px; letter-spacing:2px; }
     .order-body p { text-align:justify; line-height:1.7; margin-bottom:14px; font-size:13px; }
-    .order-footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:24px; }
-    .memo-block { font-size:12px; }
-    .signature-right { text-align:right; font-size:13px; }
+    .memo-section { margin-top:24px; font-size:12px; line-height:1.8; }
+    .signature-right { text-align:right; font-size:13px; margin-top:24px; display:flex; justify-content:flex-end; }
     .signature-right .sig-space { height:60px; }
-    .copy-section { margin-top:20px; font-size:12px; }
   </style></head>
   <body>
     <div class="order-header">
@@ -216,7 +214,7 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
         <img src="${emblemBase64}" style="width:60px;height:auto;" alt="Emblem">
       </div>
       <div class="org-name">${orgName}</div>
-      ${department ? `<div class="dept-name">(${department})</div>` : ''}
+      ${deptName ? `<div class="dept-name">(${deptName})</div>` : ''}
       ${defaultAddress ? `<div class="address-line">${defaultAddress.replace(/\n/g, ', ')}</div>` : ''}
     </div>
 
@@ -224,22 +222,21 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
 
     <div class="order-body">${parsedBody}</div>
 
-    <div class="order-footer">
-      <div class="memo-block">
-        Memo No. E ${letter.memoNo || letter.refNo} -A,<br>
-        Copy for kind information and necessary action to:
-        ${copyListHtml}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-        <div class="signature-right">
-          <div class="sig-space"></div>
-          <div style="font-weight:bold;">(${sender.name || ''})</div>
-          <div>${sender.designation || ''}</div>
-          ${orgName ? `<div>${orgName}</div>` : ''}
-          <div>Dated ${letter.memoNo ? '' : ''}${new Date(letter.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-        </div>
+    <div class="signature-right">
+      <div>
+        <div class="sig-space"></div>
+        <div style="font-weight:bold;">(${sender.name || ''})</div>
+        <div>${sender.designation || ''}</div>
+        ${orgName ? `<div>${orgName}</div>` : ''}
+        <div>Dated ${new Date(letter.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         <div class="qr"><img src="${qrCodeDataUrl}" alt="QR" style="width:60px;height:60px;"><div style="font-size:8px;font-family:Arial;color:#666;">Scan to Verify</div></div>
       </div>
+    </div>
+
+    <div class="memo-section">
+      Memo No. E ${letter.memoNo || letter.refNo} -A,<br>
+      Copy for kind information and necessary action to:
+      ${copyListHtml}
     </div>
   </body></html>`;
 }

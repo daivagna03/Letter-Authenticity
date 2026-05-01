@@ -48,7 +48,7 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
     // MPLAD-specific
     mplaadTableData,
     // District Order specific
-    memoNo, orderCopyList,
+    memoNo, orderCopyList, districtOrgName, districtDeptName,
   } = req.body;
 
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
@@ -98,6 +98,8 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         mplaadTableData: mplaadTableData ? JSON.stringify(mplaadTableData) : undefined,
         memoNo: memoNo || undefined,
         orderCopyList: orderCopyList ? JSON.stringify(orderCopyList) : undefined,
+        districtOrgName: districtOrgName || undefined,
+        districtDeptName: districtDeptName || undefined,
         hash,
         qrToken,
         createdByType,

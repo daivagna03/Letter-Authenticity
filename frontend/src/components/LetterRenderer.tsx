@@ -17,6 +17,8 @@ interface LetterRendererProps {
     mplaadTableData?: { priorityNo: string; workDescription: string; cost: string }[];
     mplaadOpeningPara?: string;
     mplaadClosingPara?: string;
+    districtOrgName?: string;
+    districtDeptName?: string;
   };
   user: {
     name: string; email?: string; mode?: string;
@@ -113,12 +115,15 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
 
   // ── DISTRICT ORDER ──
   if (slug === 'district-order') {
+    const orgName = letter.districtOrgName || organization || '[Organization Name]';
+    const deptName = letter.districtDeptName || department || '';
     return (
       <div style={pageStyle}>
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        {/* Centered header: Emblem + bold org + dept */}
+        <div style={{ textAlign: 'center', marginBottom: '16px', borderBottom: '1px solid #999', paddingBottom: '12px' }}>
           <img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px', height: 'auto', marginBottom: '6px' }} />
-          <div style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.5 }}>{organization || '[Organization Name]'}</div>
-          {department && <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase' }}>({department})</div>}
+          <div style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.5 }}>{orgName}</div>
+          {deptName && <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase' }}>({deptName})</div>}
           {defaultAddress && <div style={{ fontSize: '12px', marginTop: '4px' }}>{defaultAddress.replace(/\n/g, ', ')}</div>}
         </div>
         <div style={{ textAlign: 'center', fontSize: '16px', fontWeight: 'bold', textDecoration: 'underline', margin: '16px 0 20px', letterSpacing: '2px' }}>ORDER</div>
@@ -126,16 +131,8 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
           {parsedBody.length > 0 ? parsedBody.map((p, i) => <p key={i} style={{ lineHeight: 1.7, marginBottom: '14px', fontSize: '13px' }}>{p}</p>)
             : <p style={{ color: '#aaa', fontStyle: 'italic' }}>[Order body will appear here]</p>}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '24px' }}>
-          <div style={{ fontSize: '12px' }}>
-            Memo No. E {letter.memoNo || letter.refNo || ''} -A,<br />
-            Copy for kind information and necessary action to:
-            {(letter.orderCopyList || []).length > 0 ? (
-              <ol style={{ margin: '6px 0 0 18px', lineHeight: 1.7 }}>
-                {(letter.orderCopyList || []).map((item, i) => <li key={i}>{item}</li>)}
-              </ol>
-            ) : <div style={{ color: '#aaa', marginTop: '4px' }}>[Copy recipients]</div>}
-          </div>
+        {/* Signature right-aligned */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
           <div style={{ textAlign: 'right', fontSize: '13px' }}>
             <div style={{ height: '50px' }} />
             <div style={{ fontWeight: 'bold' }}>({user?.name || ''})</div>
@@ -143,6 +140,16 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             {organization && <div>{organization}</div>}
             <QRPlaceholder />
           </div>
+        </div>
+        {/* Memo No. and Copy section BELOW signature */}
+        <div style={{ marginTop: '24px', fontSize: '12px', lineHeight: 1.8 }}>
+          <div>Memo No. E {letter.memoNo || letter.refNo || ''} -A,</div>
+          <div>Copy for kind information and necessary action to:</div>
+          {(letter.orderCopyList || []).length > 0 ? (
+            <ol style={{ margin: '6px 0 0 18px', lineHeight: 1.7 }}>
+              {(letter.orderCopyList || []).map((item, i) => <li key={i}>{item}</li>)}
+            </ol>
+          ) : <div style={{ color: '#aaa', marginTop: '4px' }}>[Copy recipients]</div>}
         </div>
       </div>
     );
