@@ -371,7 +371,11 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────────
 export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string): Promise<Buffer> => {
   const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
-  const qrCodeDataUrl = await qrcode.toDataURL(verifyUrl, { margin: 1, width: 150 });
+  const qrCodeDataUrl = await qrcode.toDataURL(verifyUrl, { 
+    margin: 1, 
+    width: 150,
+    errorCorrectionLevel: 'L'
+  });
   const emblemBase64 = getEmblemBase64();
 
   const templateSlug = letter.template?.slug || 'general';
