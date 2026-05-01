@@ -108,10 +108,6 @@ async function VerifyContent({ token }: { token: string }) {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Subject</p>
-              <p className="font-bold text-slate-800">{result.letter.subject}</p>
-            </div>
 
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Verification Status</p>
