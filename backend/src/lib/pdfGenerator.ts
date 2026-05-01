@@ -235,6 +235,7 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
         <img src="${emblemBase64}" style="width:60px;height:auto;" alt="Emblem">
       </div>
       <div class="org-name">${orgName}</div>
+      ${letter.districtName ? `<div style="font-weight:bold;font-size:15px;text-transform:uppercase;margin-top:2px;color:#000;">${letter.districtName} District</div>` : ''}
       ${deptName ? `<div class="dept-name">(${deptName})</div>` : ''}
       ${defaultAddress ? `<div class="address-line">${defaultAddress.replace(/\n/g, ', ')}</div>` : ''}
     </div>

@@ -103,6 +103,7 @@ model Letter {
   orderCopyList   String?   @db.Text   // JSON array of numbered copy recipients
   districtOrgName String?              // Per-letter org name override for header
   districtDeptName String?             // Per-letter dept name override for header
+  districtName    String?              // District name for header
 
   hash            String
   qrToken         String    @unique

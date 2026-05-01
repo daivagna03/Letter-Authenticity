@@ -167,6 +167,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             <img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px', height: 'auto' }} />
           </div>
           <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.2, color: '#000' }}>{orgName}</div>
+          {letter.districtName && <div style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px', color: '#000' }}>{letter.districtName} District</div>}
           {deptName && <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px' }}>({deptName})</div>}
           {defaultAddress && <div style={{ fontSize: '11px', marginTop: '4px', color: '#333' }}>{defaultAddress.replace(/\n/g, ', ')}</div>}
         </div>

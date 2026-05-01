@@ -43,6 +43,7 @@ export default function CreateLetterModal({
     // District Order header fields
     districtOrgName: '',
     districtDeptName: '',
+    districtName: '',
     // MPLAD specific
     mplaadRows: [{ priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' as const }] as MplaadRow[],
     mplaadOpeningPara: 'I recommend that the following works may please be scrutinized and sanctioned from the MPLADS fund:',
@@ -61,7 +62,7 @@ export default function CreateLetterModal({
       recipientName: '', recipientDesignation: '', recipientAddressDetail: '',
       subject: '', body: '', signatureBlock: '', copyTo: '',
       memoNo: '', orderCopyItems: [''],
-      districtOrgName: '', districtDeptName: '',
+      districtOrgName: '', districtDeptName: '', districtName: '',
       mplaadRows: [{ priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' as const }],
     }));
     setError('');
@@ -94,6 +95,7 @@ export default function CreateLetterModal({
         payload.orderCopyList = formData.orderCopyItems.filter(item => item.trim() !== '');
         payload.districtOrgName = formData.districtOrgName || undefined;
         payload.districtDeptName = formData.districtDeptName || undefined;
+        payload.districtName = formData.districtName || undefined;
       }
 
       if (templateSlug === 'mplad') {
@@ -215,6 +217,10 @@ export default function CreateLetterModal({
                   <div>
                     <label className={labelClass}>Department / Branch Name</label>
                     <input className={inputClass} value={formData.districtDeptName} onChange={(e) => setFormData({ ...formData, districtDeptName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>District Name</label>
+                    <input className={inputClass} value={formData.districtName} onChange={(e) => setFormData({ ...formData, districtName: e.target.value })} placeholder="e.g. HYDERABAD" />
                   </div>
                   <div>
                     <label className={labelClass}>Memo No.</label>
@@ -359,6 +365,7 @@ export default function CreateLetterModal({
                   orderCopyList: formData.orderCopyItems.filter(i => i.trim()),
                   districtOrgName: formData.districtOrgName,
                   districtDeptName: formData.districtDeptName,
+                  districtName: formData.districtName,
                 }}
                 user={user as any}
               />
