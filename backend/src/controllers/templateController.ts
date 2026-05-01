@@ -13,7 +13,10 @@ export const getTemplates = async (req: AuthRequest, res: Response): Promise<voi
     const templates = await prisma.template.findMany({
       where: {
         isActive: true,
-        mode: userMode,
+        OR: [
+          { mode: userMode },
+          { mode: null }
+        ]
       },
       orderBy: { sortOrder: 'asc' },
     });

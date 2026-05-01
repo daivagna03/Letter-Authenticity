@@ -11,7 +11,7 @@ async function main() {
       id: 'tmpl-general',
       slug: 'general',
       name: 'General Letter',
-      mode: Mode.ORGANIZATION,
+      mode: null,
       description: 'Standard official letter with formal letterhead, body, and signature block.',
       sortOrder: 1,
     },

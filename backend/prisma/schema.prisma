@@ -65,7 +65,7 @@ model Template {
   id          String   @id
   name        String
   slug        String   @unique   // e.g. "general", "state-central", "district-order", "mplad"
-  mode        Mode
+  mode        Mode?
   description String?
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
