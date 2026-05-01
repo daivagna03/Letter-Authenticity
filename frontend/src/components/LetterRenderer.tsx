@@ -38,6 +38,7 @@ const EMBLEM_URL = 'https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_o
 const pageStyle: React.CSSProperties = {
   width: '210mm', minHeight: '297mm', fontFamily: "'Times New Roman', Times, serif",
   color: '#000', padding: '8mm 15mm 20mm 15mm', boxSizing: 'border-box', fontSize: '13px', background: '#fff',
+  position: 'relative', // Added for absolute QR placement
 };
 
 export default function LetterRenderer({ letter, user }: LetterRendererProps) {
@@ -89,8 +90,29 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
   );
 
   const QRPlaceholder = () => (
-    <div style={{ width: '70px', textAlign: 'center', fontSize: '9px', fontFamily: 'Arial', color: '#999' }}>
-      <div style={{ width: '70px', height: '70px', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 3px', border: '1px dashed #ccc', fontSize: '10px', color: '#aaa' }}>QR</div>
+    <div style={{ 
+      position: 'absolute',
+      bottom: '12mm',
+      right: '10mm',
+      width: '72px', 
+      textAlign: 'center', 
+      fontSize: '8px', 
+      fontFamily: 'Arial', 
+      color: '#555' 
+    }}>
+      <div style={{ 
+        width: '72px', 
+        height: '72px', 
+        background: '#fff', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        margin: '0 auto 2px', 
+        border: '1px solid #ddd', 
+        padding: '1px',
+        fontSize: '10px', 
+        color: '#aaa' 
+      }}>QR</div>
       Scan to Verify
     </div>
   );
@@ -121,8 +143,8 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             <div style={{ fontWeight: 'bold' }}>{senderName}</div>
             <div style={{ fontSize: '13px' }}>{designation}{organization ? `, ${organization}` : ''}</div>
           </div>
-          <QRPlaceholder />
         </div>
+        <QRPlaceholder />
         {slug === 'state-central' && (
           <div style={{ marginTop: '20px', fontSize: '13px', lineHeight: 1.7 }}>
             <strong>Copy to:</strong><br />
@@ -164,9 +186,9 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             <div style={{ fontWeight: 'bold' }}>({effectiveUser?.name || ''})</div>
             <div>{designation}</div>
             {organization && <div>{organization}</div>}
-            <QRPlaceholder />
           </div>
         </div>
+        <QRPlaceholder />
         {/* Memo No. and Copy section BELOW signature */}
         <div style={{ marginTop: '24px', fontSize: '12px', lineHeight: 1.8 }}>
           <div>Memo No. E {letter.memoNo || letter.refNo || ''} -A,</div>
@@ -186,16 +208,31 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
     const rows = letter.mplaadTableData || [];
     return (
       <div style={pageStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #8B0000', paddingBottom: '10px', marginBottom: '20px' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#8B0000' }}>{effectiveUser?.name || '[Name]'}</div>
-            <div style={{ fontSize: '13px', fontStyle: 'italic' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
-            <div style={{ fontSize: '12px', color: '#333', marginTop: '4px' }}>{constituency ? `Constituency: ${constituency}` : ''}{state ? `, ${state}` : ''}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #8B0000', paddingBottom: '12px', marginBottom: '24px' }}>
+          <div style={{ flex: 1.2 }}>
+            <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#8B0000', textTransform: 'uppercase', fontFamily: "'Times New Roman', serif" }}>{effectiveUser?.name || '[Name]'}</div>
+            <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#444', marginBottom: '8px' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', marginTop: '8px' }}>
+              {constituency && (
+                <>
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#777', fontWeight: 'bold' }}>Constituency:</span>
+                  <span style={{ fontSize: '13px', color: '#000', fontWeight: '500' }}>{constituency}</span>
+                </>
+              )}
+              {state && (
+                <>
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#777', fontWeight: 'bold' }}>State:</span>
+                  <span style={{ fontSize: '13px', color: '#000', fontWeight: '500' }}>{state}</span>
+                </>
+              )}
+            </div>
           </div>
-          <div style={{ flexShrink: 0, padding: '0 16px' }}><img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px' }} /></div>
-          <div style={{ flex: 1, textAlign: 'right', fontSize: '12px', lineHeight: 1.6 }}>
-            {addressLines.map((l, i) => <div key={i}>{l}</div>)}
-            {senderEmail && <div>e-mail: {senderEmail}</div>}
+          <div style={{ flex: 0.6, textAlign: 'center', padding: '0 10px' }}><img src={EMBLEM_URL} alt="Emblem" style={{ width: '65px' }} /></div>
+          <div style={{ flex: 1.2, textAlign: 'right', fontSize: '12px', lineHeight: 1.6, color: '#333' }}>
+            {addressLines.map((l, i) => (
+              <div key={i} style={{ fontWeight: i === 0 ? 'bold' : 'normal', fontSize: i === 0 ? '13px' : '12px' }}>{l}</div>
+            ))}
+            {senderEmail && <div style={{ marginTop: '8px', fontStyle: 'italic', color: '#555', borderTop: '1px solid #eee', paddingTop: '4px', display: 'inline-block' }}>E-mail: {senderEmail}</div>}
           </div>
         </div>
         <div style={{ marginBottom: '16px', fontSize: '14px' }}>To<br /><strong>{letter.recipientName || '[Recipient]'}</strong><br /><span dangerouslySetInnerHTML={{ __html: (letter.recipientAddress || '').replace(/\n/g, '<br/>') }} /></div>
@@ -237,9 +274,9 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             </div>
             <div style={{ fontWeight: 'bold' }}>{effectiveUser?.name || ''}</div>
             <div>{designation || (houseType ? `M.P. (${houseType})` : '')}</div>
-            <QRPlaceholder />
           </div>
         </div>
+        <QRPlaceholder />
         <div style={{ marginTop: '20px', fontSize: '13px', lineHeight: 1.8 }}>
           <strong>Copy to:</strong>{' '}
           {letter.copyTo
