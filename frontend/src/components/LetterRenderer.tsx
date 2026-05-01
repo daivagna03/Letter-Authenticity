@@ -210,29 +210,19 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
       <div style={pageStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #8B0000', paddingBottom: '12px', marginBottom: '24px' }}>
           <div style={{ flex: 1.2 }}>
-            <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#8B0000', textTransform: 'uppercase', fontFamily: "'Times New Roman', serif" }}>{effectiveUser?.name || '[Name]'}</div>
-            <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#444', marginBottom: '8px' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', marginTop: '8px' }}>
-              {constituency && (
-                <>
-                  <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#777', fontWeight: 'bold' }}>Constituency:</span>
-                  <span style={{ fontSize: '13px', color: '#000', fontWeight: '500' }}>{constituency}</span>
-                </>
-              )}
-              {state && (
-                <>
-                  <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#777', fontWeight: 'bold' }}>State:</span>
-                  <span style={{ fontSize: '13px', color: '#000', fontWeight: '500' }}>{state}</span>
-                </>
-              )}
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#000', fontFamily: "'Times New Roman', serif", marginBottom: '4px' }}>Shri {effectiveUser?.name || '[Name]'}</div>
+            <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#000', marginBottom: '6px' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
+            <div style={{ fontSize: '13px', color: '#000', lineHeight: 1.4 }}>
+              {constituency && <div style={{ marginBottom: '2px' }}>Constituency: {constituency}</div>}
+              {state && <div style={{ marginBottom: '2px' }}>State: {state}</div>}
             </div>
           </div>
           <div style={{ flex: 0.6, textAlign: 'center', padding: '0 10px' }}><img src={EMBLEM_URL} alt="Emblem" style={{ width: '65px' }} /></div>
-          <div style={{ flex: 1.2, textAlign: 'right', fontSize: '12px', lineHeight: 1.6, color: '#333' }}>
+          <div style={{ flex: 1.2, textAlign: 'right', fontSize: '12px', lineHeight: 1.6, color: '#000' }}>
             {addressLines.map((l, i) => (
               <div key={i} style={{ fontWeight: i === 0 ? 'bold' : 'normal', fontSize: i === 0 ? '13px' : '12px' }}>{l}</div>
             ))}
-            {senderEmail && <div style={{ marginTop: '8px', fontStyle: 'italic', color: '#555', borderTop: '1px solid #eee', paddingTop: '4px', display: 'inline-block' }}>E-mail: {senderEmail}</div>}
+            {senderEmail && <div style={{ marginTop: '8px', fontStyle: 'italic', color: '#444', borderTop: '1px solid #eee', paddingTop: '4px', display: 'inline-block' }}>E-mail: {senderEmail}</div>}
           </div>
         </div>
         <div style={{ marginBottom: '16px', fontSize: '14px' }}>To<br /><strong>{letter.recipientName || '[Recipient]'}</strong><br /><span dangerouslySetInnerHTML={{ __html: (letter.recipientAddress || '').replace(/\n/g, '<br/>') }} /></div>

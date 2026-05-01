@@ -304,31 +304,27 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
     ${BASE_CSS}
     .mplad-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #8B0000; padding-bottom:12px; margin-bottom:24px; }
     .mplad-left { flex: 1.2; }
-    .mplad-left .mp-name { font-size:22px; font-weight:bold; color:#8B0000; font-family:'Times New Roman',serif; margin-bottom:2px; text-transform: uppercase; }
-    .mplad-left .mp-designation { font-size:14px; font-style:italic; color:#444; margin-bottom:8px; display:block; }
-    .mplad-left .mp-info-box { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-top: 8px; }
-    .mplad-left .mp-info-label { font-size: 10px; text-transform: uppercase; color: #777; letter-spacing: 0.5px; font-weight: bold; }
-    .mplad-left .mp-info-value { font-size: 13px; color: #000; font-weight: 500; }
+    .mplad-left .mp-name { font-size:18px; font-weight:bold; color:#000; font-family:'Times New Roman',serif; margin-bottom:4px; }
+    .mplad-left .mp-designation { font-size:14px; font-style:italic; color:#000; margin-bottom:6px; display:block; }
+    .mplad-left .mp-info-line { font-size:13px; color:#000; line-height:1.4; margin-bottom:2px; }
     .mplad-center { flex: 0.6; text-align:center; padding:0 10px; }
     .mplad-center img { width:65px; height: auto; }
-    .mplad-right { flex:1.2; text-align:right; font-size:12px; line-height:1.6; color:#333; }
+    .mplad-right { flex:1.2; text-align:right; font-size:12px; line-height:1.6; color:#000; }
     .mplad-right .addr-line { margin-bottom: 2px; }
-    .mplad-right .addr-line:first-child { font-weight: bold; font-size: 13px; color: #000; }
-    .mplad-right .addr-email { margin-top: 8px; font-style: italic; color: #555; border-top: 1px solid #eee; padding-top: 4px; display: inline-block; }
+    .mplad-right .addr-line:first-child { font-weight: bold; font-size: 13px; }
+    .mplad-right .addr-email { margin-top: 8px; font-style: italic; color: #444; border-top: 1px solid #eee; padding-top: 4px; display: inline-block; }
     .works-table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
     .works-table th { border:1px solid #000; padding:6px 8px; background:#f5f5f5; font-weight:bold; text-align:center; }
     .works-table td { border:1px solid #000; padding:6px 8px; }
     .ref-line { font-weight:bold; text-decoration:underline; text-align:center; margin-bottom:8px; font-size:13px; }
   </style></head>
   <body>
-    <div class="mplad-header" id="mplad-v2">
+    <div class="mplad-header" id="mplad-v3">
       <div class="mplad-left">
-        <div class="mp-name">${senderName}</div>
+        <div class="mp-name">Shri ${sender.name || ''}</div>
         <div class="mp-designation">${houseType ? `Member of Parliament (${houseType})` : designation}</div>
-        <div class="mp-info-box">
-          ${constituency ? `<span class="mp-info-label">Constituency:</span><span class="mp-info-value">${constituency}</span>` : ''}
-          ${state ? `<span class="mp-info-label">State:</span><span class="mp-info-value">${state}</span>` : ''}
-        </div>
+        ${constituency ? `<div class="mp-info-line">Constituency: ${constituency}</div>` : ''}
+        ${state ? `<div class="mp-info-line">State: ${state}</div>` : ''}
       </div>
       <div class="mplad-center"><img src="${emblemBase64}" alt="Emblem"></div>
       <div class="mplad-right">
