@@ -121,7 +121,9 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
       <div style={pageStyle}>
         {/* Centered header: Emblem + bold org + dept */}
         <div style={{ textAlign: 'center', marginBottom: '16px', borderBottom: '1px solid #999', paddingBottom: '12px' }}>
-          <img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px', height: 'auto', marginBottom: '6px' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px' }}>
+            <img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px', height: 'auto' }} />
+          </div>
           <div style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.5 }}>{orgName}</div>
           {deptName && <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase' }}>({deptName})</div>}
           {defaultAddress && <div style={{ fontSize: '12px', marginTop: '4px' }}>{defaultAddress.replace(/\n/g, ', ')}</div>}
