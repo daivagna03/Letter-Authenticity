@@ -77,11 +77,11 @@ const BASE_CSS = `
   }
   .header-left { flex: 1; text-align: left; }
   .header-left .name { font-size: 18px; font-weight: bold; margin-bottom: 3px; }
-  .header-left .info-line { font-size: 13px; font-style: italic; line-height: 1.4; }
+  .header-left .info-line { font-size: 13px; line-height: 1.5; color: #000; }
   .header-center { flex-shrink: 0; text-align: center; padding: 0 20px; }
   .header-center img { width: 65px; height: auto; }
-  .header-right { flex: 1; display: flex; justify-content: flex-end; font-size: 13px; line-height: 1.4; margin-top: 2px; }
-  .header-right-inner { text-align: right; max-width: 250px; }
+  .header-right { flex: 1; display: flex; justify-content: flex-end; font-size: 13px; line-height: 1.5; }
+  .header-right-inner { text-align: right; max-width: 280px; }
   .meta-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 14px; }
   .recipient-block { line-height: 1.6; }
   .date-block { white-space: nowrap; }
@@ -116,7 +116,7 @@ function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64
   if (defaultAddress) {
     const addressLines = defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
     addressHtml = addressLines.map((line: string, idx: number) =>
-      `<div style="line-height:1.6;">${line}${idx < addressLines.length - 1 ? ',' : ''}</div>`
+      `<div style="line-height:1.5;margin-bottom:1px;">${line}${idx < addressLines.length - 1 ? ',' : ''}</div>`
     ).join('');
   }
   const emailLine = senderEmail ? `<div style="margin-top:8px;">E-mail: ${senderEmail}</div>` : '';
@@ -141,14 +141,19 @@ function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64
           <div class="page-header">
             <div class="header-left">
               <div class="name">${senderName}</div>
-              <div class="info-line">${designation}</div>
-              ${constituency ? `<div class="info-line" style="font-size:12px;color:#444;">Constituency: ${constituency}</div>` : ''}
-              ${state ? `<div class="info-line" style="font-size:12px;color:#444;">State: ${state}</div>` : ''}
-              ${department ? `<div class="info-line">${department}</div>` : ''}
-              ${organization ? `<div class="info-line">${organization}</div>` : ''}
+              <div class="info-line" style="font-style:italic;">${designation}</div>
+              ${constituency ? `<div class="info-line">Constituency: ${constituency}</div>` : ''}
+              ${state ? `<div class="info-line">State: ${state}</div>` : ''}
+              ${department ? `<div class="info-line" style="font-style:italic;">${department}</div>` : ''}
+              ${organization ? `<div class="info-line" style="font-style:italic;">${organization}</div>` : ''}
             </div>
             <div class="header-center"><img src="${emblemBase64}" alt="Emblem"></div>
-            <div class="header-right"><div class="header-right-inner">${addressHtml}${emailLine}</div></div>
+            <div class="header-right">
+              <div class="header-right-inner">
+                ${addressHtml}
+                ${senderEmail ? `<div style="margin-top:6px;font-weight:bold;">E-mail: ${senderEmail}</div>` : ''}
+              </div>
+            </div>
           </div>
         </td></tr>
       </thead>

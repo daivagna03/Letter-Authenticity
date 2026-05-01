@@ -56,19 +56,27 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #999', paddingBottom: '10px', marginBottom: '16px' }}>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '3px' }}>{senderName}</div>
-        {designation && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{designation}</div>}
-        {constituency && <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.4 }}>Constituency: {constituency}</div>}
-        {state && <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.4 }}>State: {state}</div>}
-        {department && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{department}</div>}
-        {organization && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{organization}</div>}
+        {designation && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.5 }}>{designation}</div>}
+        {constituency && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>Constituency: {constituency}</div>}
+        {state && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>State: {state}</div>}
+        {department && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.5 }}>{department}</div>}
+        {organization && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.5 }}>{organization}</div>}
       </div>
       <div style={{ flexShrink: 0, textAlign: 'center', padding: '0 20px' }}>
         <img src={EMBLEM_URL} alt="Emblem" style={{ width: '65px', height: 'auto' }} />
       </div>
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.6 }}>
-        <div style={{ textAlign: 'right', maxWidth: '250px' }}>
-          {addressLines.length > 0 ? addressLines.map((l, i) => <div key={i}>{l}{i < addressLines.length - 1 ? ',' : ''}</div>) : <span style={{ color: '#999', fontStyle: 'italic' }}>[Address not set]</span>}
-          {senderEmail && <div style={{ marginTop: '8px' }}>E-mail: {senderEmail}</div>}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.5 }}>
+        <div style={{ textAlign: 'right', maxWidth: '280px' }}>
+          {addressLines.length > 0 ? (
+            addressLines.map((l, i) => (
+              <div key={i} style={{ marginBottom: '1px' }}>
+                {l}{i < addressLines.length - 1 ? ',' : ''}
+              </div>
+            ))
+          ) : (
+            <span style={{ color: '#999', fontStyle: 'italic' }}>[Address not set]</span>
+          )}
+          {senderEmail && <div style={{ marginTop: '6px', fontWeight: '500' }}>E-mail: {senderEmail}</div>}
         </div>
       </div>
     </div>
