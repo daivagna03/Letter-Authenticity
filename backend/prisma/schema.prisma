@@ -87,7 +87,9 @@ model Letter {
   refNo           String    @unique
   date            DateTime
   recipientName   String
+  recipientDesignation String?   // Separate designation field
   recipientAddress String
+  recipientAddressDetail String? @db.Text  // Separate address detail field
   subject         String
   body            String    @db.Text
   signatureBlock  String

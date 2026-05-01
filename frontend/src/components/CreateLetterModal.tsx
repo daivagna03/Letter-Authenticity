@@ -9,6 +9,7 @@ interface MplaadRow {
   priorityNo: string;
   workDescription: string;
   cost: string;
+  costUnit: 'Lakh' | 'Crore';
 }
 
 interface CreateLetterModalProps {
@@ -40,7 +41,7 @@ export default function CreateLetterModal({
     memoNo: '',
     orderCopyItems: [''],
     // MPLAD specific
-    mplaadRows: [{ priorityNo: '', workDescription: '', cost: '' }] as MplaadRow[],
+    mplaadRows: [{ priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' as const }] as MplaadRow[],
     mplaadOpeningPara: 'I recommend that the following works may please be scrutinized and sanctioned from the MPLADS fund:',
     mplaadClosingPara: 'The technical, financial and administrative sanction for the above works may be issued after they have been duly scrutinized. The sanctioned works should be undertaken and completed as per the provisions of the MPLADS Guidelines. I may please be kept informed of the sanction and the progress of the works.',
   }));
@@ -56,8 +57,8 @@ export default function CreateLetterModal({
       date: new Date().toISOString().split('T')[0],
       recipientName: '', recipientDesignation: '', recipientAddressDetail: '',
       subject: '', body: '', signatureBlock: '', copyTo: '',
-      memoNo: '', orderCopyItems: [''],
-      mplaadRows: [{ priorityNo: '', workDescription: '', cost: '' }],
+    memoNo: '', orderCopyItems: [''],
+      mplaadRows: [{ priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' as const }],
     }));
     setError('');
   }, [templateSlug]);
@@ -70,15 +71,13 @@ export default function CreateLetterModal({
     setError('');
 
     try {
-      const recipientAddress = formData.recipientAddressDetail
-        ? `${formData.recipientDesignation}\n${formData.recipientAddressDetail}`
-        : formData.recipientDesignation;
-
       const payload: any = {
         refNo: formData.refNo,
         date: formData.date,
         recipientName: formData.recipientName,
-        recipientAddress,
+        recipientDesignation: formData.recipientDesignation || undefined,
+        recipientAddressDetail: formData.recipientAddressDetail || undefined,
+        recipientAddress: [formData.recipientDesignation, formData.recipientAddressDetail].filter(Boolean).join('\n'),
         subject: formData.subject,
         body: formData.body || (templateSlug === 'mplad' ? formData.mplaadOpeningPara : ''),
         signatureBlock: formData.signatureBlock,
@@ -93,7 +92,9 @@ export default function CreateLetterModal({
 
       if (templateSlug === 'mplad') {
         payload.body = formData.mplaadOpeningPara;
-        payload.mplaadTableData = formData.mplaadRows.filter(r => r.priorityNo || r.workDescription);
+        payload.mplaadTableData = formData.mplaadRows
+          .filter(r => r.priorityNo || r.workDescription)
+          .map(r => ({ ...r, cost: `${r.cost} ${r.costUnit}` }));
         payload.copyTo = formData.copyTo || undefined;
       }
 
@@ -136,10 +137,10 @@ export default function CreateLetterModal({
       </div>
       <div>
         <label className={labelClass}>Recipient Designation</label>
-        <input required className={inputClass} value={formData.recipientDesignation} onChange={(e) => setFormData({ ...formData, recipientDesignation: e.target.value })} />
+        <input className={inputClass} value={formData.recipientDesignation} onChange={(e) => setFormData({ ...formData, recipientDesignation: e.target.value })} />
       </div>
       <div>
-        <label className={labelClass}>Recipient Address (Optional)</label>
+        <label className={labelClass}>Recipient Address</label>
         <textarea rows={2} className={inputClass} value={formData.recipientAddressDetail} onChange={(e) => setFormData({ ...formData, recipientAddressDetail: e.target.value })} />
       </div>
     </>
@@ -258,15 +259,19 @@ export default function CreateLetterModal({
                   </div>
                   <div>
                     <label className={labelClass}>To (Recipient Name)</label>
-                    <input required className={inputClass} value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} placeholder="The Collector & District Magistrate" />
+                    <input required className={inputClass} value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} />
                   </div>
                   <div>
-                    <label className={labelClass}>Recipient Designation & Address</label>
-                    <textarea rows={2} className={inputClass} value={formData.recipientAddressDetail} onChange={(e) => setFormData({ ...formData, recipientAddressDetail: e.target.value })} placeholder="Karimnagar District." />
+                    <label className={labelClass}>Recipient Designation</label>
+                    <input className={inputClass} value={formData.recipientDesignation} onChange={(e) => setFormData({ ...formData, recipientDesignation: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Recipient Address</label>
+                    <textarea rows={2} className={inputClass} value={formData.recipientAddressDetail} onChange={(e) => setFormData({ ...formData, recipientAddressDetail: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>Subject</label>
-                    <input required className={inputClass} value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} placeholder="Recommendation of works under MPLAD Scheme (2026-27)." />
+                    <input required className={inputClass} value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>Opening Paragraph</label>
@@ -280,9 +285,9 @@ export default function CreateLetterModal({
                       <table className="w-full text-sm">
                         <thead className="bg-slate-100">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-bold text-slate-600 border-b w-16">Priority No.</th>
+                            <th className="px-3 py-2 text-left text-xs font-bold text-slate-600 border-b w-16">Priority<br/>No.</th>
                             <th className="px-3 py-2 text-left text-xs font-bold text-slate-600 border-b">Name &amp; Nature of Work / Location</th>
-                            <th className="px-3 py-2 text-left text-xs font-bold text-slate-600 border-b w-28">Cost (₹ lakh)</th>
+                            <th className="px-3 py-2 text-left text-xs font-bold text-slate-600 border-b w-36">Cost &amp; Unit</th>
                             <th className="w-8 border-b"></th>
                           </tr>
                         </thead>
@@ -290,13 +295,23 @@ export default function CreateLetterModal({
                           {formData.mplaadRows.map((row, idx) => (
                             <tr key={idx} className="border-b last:border-0">
                               <td className="px-2 py-1.5">
-                                <input className="w-full px-2 py-1 border rounded text-sm outline-none focus:ring-1 focus:ring-indigo-400" value={row.priorityNo} onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], priorityNo: e.target.value }; setFormData({ ...formData, mplaadRows: r }); }} placeholder="015" />
+                                <input className="w-full px-2 py-1 border rounded text-sm outline-none focus:ring-1 focus:ring-indigo-400" value={row.priorityNo} onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], priorityNo: e.target.value }; setFormData({ ...formData, mplaadRows: r }); }} />
                               </td>
                               <td className="px-2 py-1.5">
-                                <textarea rows={2} className="w-full px-2 py-1 border rounded text-sm outline-none focus:ring-1 focus:ring-indigo-400 resize-none" value={row.workDescription} onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], workDescription: e.target.value }; setFormData({ ...formData, mplaadRows: r }); }} placeholder="Laying of CC Road from..." />
+                                <textarea rows={2} className="w-full px-2 py-1 border rounded text-sm outline-none focus:ring-1 focus:ring-indigo-400 resize-none" value={row.workDescription} onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], workDescription: e.target.value }; setFormData({ ...formData, mplaadRows: r }); }} />
                               </td>
                               <td className="px-2 py-1.5">
-                                <input className="w-full px-2 py-1 border rounded text-sm outline-none focus:ring-1 focus:ring-indigo-400" value={row.cost} onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], cost: e.target.value }; setFormData({ ...formData, mplaadRows: r }); }} placeholder="4.98" />
+                                <div className="flex gap-1">
+                                  <input className="w-20 px-2 py-1 border rounded text-sm outline-none focus:ring-1 focus:ring-indigo-400" value={row.cost} onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], cost: e.target.value }; setFormData({ ...formData, mplaadRows: r }); }} />
+                                  <select
+                                    className="flex-1 px-1 py-1 border rounded text-xs outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
+                                    value={row.costUnit}
+                                    onChange={(e) => { const r = [...formData.mplaadRows]; r[idx] = { ...r[idx], costUnit: e.target.value as 'Lakh' | 'Crore' }; setFormData({ ...formData, mplaadRows: r }); }}
+                                  >
+                                    <option value="Lakh">Lakh</option>
+                                    <option value="Crore">Crore</option>
+                                  </select>
+                                </div>
                               </td>
                               <td className="px-1">
                                 {formData.mplaadRows.length > 1 && (
@@ -308,7 +323,7 @@ export default function CreateLetterModal({
                         </tbody>
                       </table>
                       <div className="p-2 bg-slate-50 border-t">
-                        <button type="button" onClick={() => setFormData({ ...formData, mplaadRows: [...formData.mplaadRows, { priorityNo: '', workDescription: '', cost: '' }] })} className="text-xs text-indigo-600 font-semibold hover:text-indigo-700">+ Add Row</button>
+                        <button type="button" onClick={() => setFormData({ ...formData, mplaadRows: [...formData.mplaadRows, { priorityNo: '', workDescription: '', cost: '', costUnit: 'Lakh' }] })} className="text-xs text-indigo-600 font-semibold hover:text-indigo-700">+ Add Row</button>
                       </div>
                     </div>
                   </div>
@@ -319,7 +334,7 @@ export default function CreateLetterModal({
                   </div>
                   <div>
                     <label className={labelClass}>Copy to:</label>
-                    <textarea rows={2} className={inputClass} value={formData.copyTo} onChange={(e) => setFormData({ ...formData, copyTo: e.target.value })} placeholder="The Collector & District Magistrate, Khammam District&#10;For information and necessary further action accordingly." />
+                    <textarea rows={2} className={inputClass} value={formData.copyTo} onChange={(e) => setFormData({ ...formData, copyTo: e.target.value })} />
                   </div>
                 </>
               )}

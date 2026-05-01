@@ -42,6 +42,7 @@ const DRAFTER_SELECT_FIELDS = {
 export const createLetter = async (req: AuthRequest, res: Response): Promise<void> => {
   const {
     refNo, date, recipientName, recipientAddress,
+    recipientDesignation, recipientAddressDetail,
     subject, body, signatureBlock, copyTo,
     templateId,
     // MPLAD-specific
@@ -86,7 +87,9 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         refNo,
         date: new Date(date),
         recipientName,
-        recipientAddress,
+        recipientDesignation: recipientDesignation || undefined,
+        recipientAddress: recipientAddress || '',
+        recipientAddressDetail: recipientAddressDetail || undefined,
         subject,
         body,
         signatureBlock,

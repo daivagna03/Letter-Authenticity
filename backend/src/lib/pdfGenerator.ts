@@ -274,12 +274,13 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
         <td style="border:1px solid #000;padding:12px 8px;text-align:center;"></td>
       </tr>`;
 
-  const addressLines = defaultAddress.split(/\n/).filter(Boolean);
-  const addressHtml = addressLines.map(l => `${l}<br>`).join('');
+  // Address block: each comma-separated or newline-separated part on its own line
+  const addressLines = defaultAddress.split(/[\n,]/).map((l: string) => l.trim()).filter(Boolean);
+  const addressHtml = addressLines.map((l: string) => `<div>${l}</div>`).join('');
 
   const copyToHtml = letter.copyTo
-    ? `<div style="margin-top:20px;font-size:13px;"><strong>Copy to:</strong> ${letter.copyTo.replace(/\n/g, '<br>')}</div>`
-    : `<div style="margin-top:20px;font-size:13px;"><strong>Copy to:</strong><br><br></div>`;
+    ? `<div style="margin-top:24px;font-size:13px;line-height:1.8;"><strong>Copy to:</strong> ${letter.copyTo.replace(/\n/g, '<br>')}</div>`
+    : `<div style="margin-top:24px;font-size:13px;"><strong>Copy to:</strong><br><br></div>`;
 
   const parsedBody = parseBodyToParagraphs(letter.body);
 
@@ -312,10 +313,10 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
       </div>
     </div>
 
-    <div style="margin-bottom:16px;font-size:14px;">
+    <div style="margin-bottom:16px;font-size:14px;line-height:1.6;">
       To<br>
       <strong>${letter.recipientName}</strong><br>
-      ${letter.recipientAddress.replace(/\n/g, '<br>')}
+      ${letter.recipientDesignation ? `${letter.recipientDesignation}<br>` : ''}${letter.recipientAddressDetail ? letter.recipientAddressDetail.replace(/\n/g, '<br>') : ''}
     </div>
 
     <div style="margin-bottom:10px;font-size:14px;">Dear Sir,</div>
@@ -345,21 +346,19 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
       <p>The technical, financial and administrative sanction for the above works may be issued after they have been duly scrutinized. The sanctioned works should be undertaken and completed as per the provisions of the MPLADS Guidelines. I may please be kept informed of the sanction and the progress of the works.</p>
     </div>
 
-    <div class="footer-row">
-      <div style="flex:1;">
-        ${copyToHtml}
-      </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:20px;">
       <div style="text-align:right;">
-        <div style="margin-bottom:4px;">Yours faithfully,</div>
+        <div style="margin-bottom:4px;font-size:14px;">Yours faithfully,</div>
         <div style="height:55px;"></div>
-        <div style="font-weight:bold;">${senderName}</div>
-        <div>${designation || (houseType ? `M.P. (${houseType})` : '')}</div>
+        <div style="font-weight:bold;font-size:14px;">${senderName}</div>
+        <div style="font-size:13px;">${designation || (houseType ? `M.P. (${houseType})` : '')}</div>
         <div class="qr" style="margin-top:8px;margin-left:auto;">
           <img src="${qrCodeDataUrl}" alt="QR" style="width:60px;height:60px;">
           <div style="font-size:8px;font-family:Arial;color:#666;">Scan to Verify</div>
         </div>
       </div>
     </div>
+    ${copyToHtml}
   </body></html>`;
 }
 
