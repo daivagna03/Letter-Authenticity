@@ -5,6 +5,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
 import letterRoutes from './routes/letters';
+import templateRoutes from './routes/templates';
 import { warmBrowser } from './lib/pdfGenerator';
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/letters', letterRoutes);
+app.use('/api/templates', templateRoutes);
 
 app.get('/', (req, res) => {
   res.send('DocVerify Letter Verification API is running.');
@@ -34,7 +36,7 @@ app.get('/', (req, res) => {
 // Setup Socket.IO
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-  
+
   socket.on('join', (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined room`);
@@ -49,6 +51,5 @@ app.set('io', io);
 
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-  // Pre-launch Chromium so the first PDF download is fast
   warmBrowser().catch((err) => console.error('[PDF] Browser warm-up failed:', err));
 });

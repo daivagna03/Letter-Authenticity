@@ -8,26 +8,22 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
-  accountType?: string;
+  role: string;          // 'MAIN_USER' | 'OPERATOR' | 'ADMIN'
+  mode: string;          // 'ORGANIZATION' | 'POLITICAL'
   employeeId?: string;
   isActive?: boolean;
-  // Principal details
-  principalName?: string;
-  principalDesignation?: string;
-  principalOrganization?: string;
-  principalAddress?: string;
-  principalSignatureUrl?: string;
-  principalSealUrl?: string;
-  // Assistant details
-  assistantName?: string;
-  assistantRole?: string;
-  assistantContact?: string;
-  // Regular / legacy fields
+  // Organization mode fields
   designation?: string;
   department?: string;
   organization?: string;
   defaultAddress?: string;
+  // Political mode fields
+  constituency?: string;
+  state?: string;
+  houseType?: string;
+  // Signature & Seal
+  signatureUrl?: string;
+  sealUrl?: string;
   // Operator
   operatorRole?: string;
   parentUserId?: string;
@@ -41,8 +37,6 @@ interface AuthContextType {
   register: (data: any) => Promise<void>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
-  updateAssistantDetails: (data: any) => Promise<void>;
-  updatePrincipalDetails: (data: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,8 +79,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: any) => {
     await api.post('/auth/register', data);
-    // After registration, we don't log in automatically.
-    // We just redirect to login page.
     router.push('/login?registered=true');
   };
 
@@ -102,18 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.data);
   };
 
-  const updateAssistantDetails = async (data: any) => {
-    const res = await api.put('/auth/assistant', data);
-    setUser(res.data);
-  };
-
-  const updatePrincipalDetails = async (data: any) => {
-    const res = await api.put('/auth/principal', data);
-    setUser(res.data);
-  };
-
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile, updateAssistantDetails, updatePrincipalDetails }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

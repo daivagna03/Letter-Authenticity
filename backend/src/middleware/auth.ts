@@ -8,7 +8,7 @@ export interface AuthRequest extends Request {
     id: string;
     role: string;
     email: string;
-    accountType?: string;
+    mode?: string;
     parentUserId?: string;
   };
 }

@@ -6,7 +6,6 @@ import fs from 'fs';
 import path from 'path';
 
 // ── Singleton browser ──────────────────────────────────────────────────────────
-// Launch Chromium ONCE and reuse for every PDF. Eliminates cold-start delay.
 let _browser: Browser | null = null;
 let _launching: Promise<Browser> | null = null;
 
@@ -17,13 +16,8 @@ async function getBrowser(): Promise<Browser> {
   _launching = (async () => {
     console.log('[PDF] Launching Chromium…');
     const args = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-extensions',
-      '--single-process',
-      '--no-zygote',
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+      '--disable-gpu', '--disable-extensions', '--single-process', '--no-zygote',
     ];
 
     let browser: Browser;
@@ -52,299 +46,347 @@ async function getBrowser(): Promise<Browser> {
   return _launching;
 }
 
-/** Call at server startup to pre-warm the browser */
 export async function warmBrowser(): Promise<void> {
   await getBrowser();
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-
-export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string) => {
-  const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
-  const qrCodeDataUrl = await qrcode.toDataURL(verifyUrl, {
-    margin: 1,
-    width: 150,
-  });
-
+// ── Shared utilities ───────────────────────────────────────────────────────────
+function getEmblemBase64(): string {
   const emblemSvg = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'emblem.svg'), 'utf8');
-  const emblemBase64 = `data:image/svg+xml;base64,${Buffer.from(emblemSvg).toString('base64')}`;
+  return `data:image/svg+xml;base64,${Buffer.from(emblemSvg).toString('base64')}`;
+}
 
+function parseBodyToParagraphs(body: string): string {
+  return body ? body.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('') : '';
+}
+
+function formatDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-');
+}
+
+// ── SHARED CSS ─────────────────────────────────────────────────────────────────
+const BASE_CSS = `
+  html, body { margin: 0; padding: 0; }
+  @page { size: A4; margin: 8mm 15mm 20mm 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Times New Roman', Times, serif; color: #000; font-size: 13px; }
+  .page-header {
+    margin-bottom: 16px; margin-top: 8px; padding-top: 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 1px solid #999; padding-bottom: 10px;
+  }
+  .header-left { flex: 1; text-align: left; }
+  .header-left .name { font-size: 18px; font-weight: bold; margin-bottom: 3px; }
+  .header-left .info-line { font-size: 13px; font-style: italic; line-height: 1.4; }
+  .header-center { flex-shrink: 0; text-align: center; padding: 0 20px; }
+  .header-center img { width: 65px; height: auto; }
+  .header-right { flex: 1; display: flex; justify-content: flex-end; font-size: 13px; line-height: 1.4; margin-top: 2px; }
+  .header-right-inner { text-align: right; max-width: 250px; }
+  .meta-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 14px; }
+  .recipient-block { line-height: 1.6; }
+  .date-block { white-space: nowrap; }
+  .subject-line { font-weight: bold; margin-bottom: 15px; font-size: 14px; }
+  .salutation { margin-bottom: 12px; font-size: 14px; }
+  .content { text-align: justify; }
+  .content p { text-align: justify; line-height: 1.6; margin-bottom: 12px; page-break-inside: avoid; }
+  .footer-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; page-break-inside: avoid; break-before: avoid; }
+  .signature-block { font-size: 14px; }
+  .signature-space { height: 50px; }
+  .signature-name { font-weight: bold; }
+  .signature-title { font-size: 13px; }
+  .qr { width: 70px; text-align: center; font-size: 9px; font-family: Arial, sans-serif; color: #666; }
+  .qr img { width: 70px; height: 70px; display: block; margin: 0 auto 3px auto; }
+  .copy-to-section { margin-top: 20px; font-size: 13px; line-height: 1.6; }
+  .copy-to-section strong { font-weight: bold; }
+`;
+
+// ── TEMPLATE: GENERAL LETTER (and State/Central) ───────────────────────────────
+function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: string, includeCopyTo: boolean): string {
   const sender = letter.sender;
-  const isAssistant = sender.accountType === 'ASSISTANT';
-  
-  const senderName = isAssistant 
-    ? (sender.principalName ? `Shri ${sender.principalName}` : '') 
-    : (sender.name ? `Shri ${sender.name}` : '');
-    
-  const designation = isAssistant ? (sender.principalDesignation || '') : (sender.designation || '');
-  const department = isAssistant ? '' : (sender.department || ''); // Assistant mode doesn't use department usually
-  const organization = isAssistant ? (sender.principalOrganization || '') : (sender.organization || '');
-  const defaultAddress = isAssistant ? (sender.principalAddress || '') : (sender.defaultAddress || '');
+  const senderName = sender.name ? `Shri ${sender.name}` : '';
+  const designation = sender.designation || '';
+  const department = sender.department || '';
+  const organization = sender.organization || '';
+  const defaultAddress = sender.defaultAddress || '';
   const senderEmail = sender.email || '';
 
-  // Parse address into structured lines
   let addressHtml = '';
   if (defaultAddress) {
     const addressLines = defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
     addressHtml = addressLines.map((line: string, idx: number) =>
-      `<div style="line-height: 1.6;">${line}${idx < addressLines.length - 1 ? ',' : ''}</div>`
+      `<div style="line-height:1.6;">${line}${idx < addressLines.length - 1 ? ',' : ''}</div>`
     ).join('');
   }
   const emailLine = senderEmail ? `<div style="margin-top:8px;">E-mail: ${senderEmail}</div>` : '';
+  const parsedBody = parseBodyToParagraphs(letter.body);
 
-  // Parse body into paragraphs
-  const parsedBody = letter.body ? letter.body.split('\n').filter((p: string) => p.trim() !== '').map((p: string) => `<p>${p}</p>`).join('') : '';
+  const signatureImageHtml = sender.signatureUrl
+    ? `<img src="${sender.signatureUrl}" style="height:60px;max-width:200px;object-fit:contain;mix-blend-mode:multiply;" />`
+    : '';
+  const sealImageHtml = sender.sealUrl
+    ? `<img src="${sender.sealUrl}" style="height:80px;width:80px;object-fit:contain;opacity:0.8;position:absolute;left:40px;top:0;z-index:1;" />`
+    : '';
 
-  // No external font URLs — all fonts are local to avoid network delays
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        html, body {
-          margin: 0;
-          padding: 0;
-        }
+  const copyToHtml = includeCopyTo && letter.copyTo
+    ? `<div class="copy-to-section"><strong>Copy to:</strong><br>${letter.copyTo.replace(/\n/g, '<br>')}</div>`
+    : (includeCopyTo ? `<div class="copy-to-section" style="margin-top:24px;"><strong>Copy to:</strong><br><br></div>` : '');
 
-        @page { 
-          size: A4; 
-          margin: 8mm 15mm 20mm 15mm; 
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-          font-family: 'Times New Roman', Times, serif;
-          color: #000;
-          font-size: 13px;
-        }
-
-        .page {
-          /* No page-break-after to prevent extra blank pages */
-        }
-
-        .page-header {
-          margin-bottom: 20px;
-          margin-top: 10px;
-          padding-top: 0;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          border-bottom: 1px solid #999;
-          padding-bottom: 10px;
-        }
-
-        .page-content {
-          page-break-inside: auto;
-          margin-top: 0;
-        }
-
-        .header-left {
-          flex: 1;
-          text-align: left;
-        }
-        .header-left .name {
-          font-size: 18px;
-          font-weight: bold;
-          font-family: 'Times New Roman', Times, serif;
-          margin-bottom: 3px;
-        }
-        .header-left .info-line {
-          font-size: 13px;
-          font-style: italic;
-          line-height: 1.4;
-        }
-        .header-center {
-          flex-shrink: 0;
-          text-align: center;
-          padding: 0 20px;
-        }
-        .header-center img {
-          width: 65px;
-          height: auto;
-        }
-        .header-center .motto {
-          font-size: 11px;
-          font-weight: bold;
-          color: #333;
-          margin-top: 2px;
-        }
-        .header-right {
-          flex: 1;
-          display: flex;
-          justify-content: flex-end;
-          font-size: 13px;
-          line-height: 1.4;
-          margin-top: 2px;
-        }
-        .header-right-inner {
-          text-align: right;
-          max-width: 250px;
-        }
-
-        /* === Meta === */
-        .meta-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-        .recipient-block {
-          line-height: 1.6;
-        }
-        .date-block {
-          white-space: nowrap;
-        }
-
-        /* === Body === */
-        .subject-line {
-          font-weight: bold;
-          margin-bottom: 15px;
-          font-size: 14px;
-        }
-        .salutation {
-          margin-bottom: 12px;
-          font-size: 14px;
-        }
-
-        .content {
-          text-align: justify;
-          position: relative;
-        }
-        .content p {
-          text-align: justify;
-          line-height: 1.6;
-          margin-bottom: 12px;
-          font-family: 'Times New Roman', serif;
-          page-break-inside: avoid;
-        }
-
-        /* === Footer Row === */
-        .footer-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-top: 20px;
-          page-break-inside: avoid;
-          page-break-before: avoid;
-          break-before: avoid;
-        }
-
-        /* === Signature === */
-        .signature-block {
-          font-size: 14px;
-        }
-        .signature-space {
-          height: 50px;
-        }
-        .signature-name {
-          font-weight: bold;
-        }
-        .signature-title {
-          font-size: 13px;
-        }
-
-        /* === QR Code === */
-        .qr {
-          width: 70px;
-          text-align: center;
-          font-size: 9px;
-          font-family: Arial, sans-serif;
-          color: #666;
-        }
-        .qr img {
-          width: 70px;
-          height: 70px;
-          display: block;
-          margin: 0 auto 3px auto;
-        }
-      </style>
-    </head>
-    <body>
-      <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; padding: 0;">
-        <thead style="display: table-header-group;">
-          <tr>
-            <td style="padding: 0; border: none;">
-              <div class="page-header" style="background-color: #fff; position: relative; z-index: 10;">
-                <div class="header-left">
-                  <div class="name">${senderName}</div>
-                  <div class="info-line">${designation}</div>
-                  <div class="info-line">${department}</div>
-                  <div class="info-line">${organization}</div>
+  return `<!DOCTYPE html><html><head><style>${BASE_CSS}</style></head>
+  <body>
+    <table style="width:100%;border-collapse:collapse;border:none;">
+      <thead style="display:table-header-group;">
+        <tr><td style="padding:0;border:none;">
+          <div class="page-header">
+            <div class="header-left">
+              <div class="name">${senderName}</div>
+              <div class="info-line">${designation}</div>
+              <div class="info-line">${department}</div>
+              <div class="info-line">${organization}</div>
+            </div>
+            <div class="header-center"><img src="${emblemBase64}" alt="Emblem"></div>
+            <div class="header-right"><div class="header-right-inner">${addressHtml}${emailLine}</div></div>
+          </div>
+        </td></tr>
+      </thead>
+      <tbody><tr><td style="padding:0;border:none;">
+        <div class="content">
+          <div class="meta-row">
+            <div class="recipient-block">To,<br><strong>Shri ${letter.recipientName}</strong><br>${letter.recipientAddress.replace(/\n/g, '<br>')}</div>
+            <div class="date-block">Date: ${formatDate(letter.date)}</div>
+          </div>
+          <div class="subject-line">Subject: ${letter.subject}</div>
+          <div class="salutation">Sir,</div>
+          <div>${parsedBody}</div>
+          <div class="footer-row">
+            <div style="position:relative;flex:1;">
+              <div class="signature-block">
+                <div>Yours sincerely,</div>
+                <div class="signature-space" style="position:relative;height:80px;display:flex;align-items:center;">
+                  ${signatureImageHtml}${sealImageHtml}
                 </div>
-
-                <div class="header-center">
-                  <img src="${emblemBase64}" alt="National Emblem">
-                </div>
-
-                <div class="header-right">
-                  <div class="header-right-inner">
-                    ${addressHtml}
-                    ${emailLine}
-                  </div>
-                </div>
+                <div class="signature-name">${senderName}</div>
+                <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
               </div>
-            </td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="padding: 0; border: none;">
-              <div class="page">
-                <div class="page-content content">
-                  <!-- To / Date -->
-                  <div class="meta-row">
-                    <div class="recipient-block">
-                      To,<br>
-                      <strong>Shri ${letter.recipientName}</strong><br>
-                      ${letter.recipientAddress.replace(/\n/g, '<br>')}
-                    </div>
-                    <div class="date-block">
-                      Date: ${new Date(letter.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-')}
-                    </div>
-                  </div>
+            </div>
+            <div class="qr"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>
+          </div>
+          ${copyToHtml}
+        </div>
+      </td></tr></tbody>
+    </table>
+  </body></html>`;
+}
 
-                  <!-- Subject -->
-                  <div class="subject-line">
-                    Subject: ${letter.subject}
-                  </div>
+// ── TEMPLATE: DISTRICT ORDER ───────────────────────────────────────────────────
+function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64: string): string {
+  const sender = letter.sender;
+  const orgName = sender.organization || '';
+  const department = sender.department || '';
+  const defaultAddress = sender.defaultAddress || '';
 
-                  <!-- Salutation -->
-                  <div class="salutation">Sir,</div>
+  const parsedBody = parseBodyToParagraphs(letter.body);
 
-                  <!-- Body -->
-                  <div>${parsedBody}</div>
+  // Parse the numbered copy list
+  let copyList: string[] = [];
+  try {
+    if (letter.orderCopyList) copyList = JSON.parse(letter.orderCopyList);
+  } catch (_) {}
 
-                  <!-- Footer Row -->
-                  <div class="footer-row">
-                    <!-- Signature & Seal -->
-                    <div style="position: relative; flex: 1;">
-                      <div class="signature-block">
-                        <div>Yours sincerely,</div>
-                        <div class="signature-space" style="position: relative; height: 80px; display: flex; align-items: center;">
-                          ${isAssistant && sender.principalSignatureUrl ? `<img src="${sender.principalSignatureUrl}" style="height: 60px; max-width: 200px; object-fit: contain; mix-blend-mode: multiply; position: relative; z-index: 2;" />` : ''}
-                          ${isAssistant && sender.principalSealUrl ? `<img src="${sender.principalSealUrl}" style="height: 80px; width: 80px; object-fit: contain; opacity: 0.8; position: absolute; left: 40px; top: 0; z-index: 1;" />` : ''}
-                        </div>
-                        <div class="signature-name">${senderName}</div>
-                        <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
-                      </div>
-                    </div>
+  const copyListHtml = copyList.length > 0
+    ? `<ol style="margin:6px 0 0 18px;line-height:1.7;">${copyList.map(item => `<li>${item}</li>`).join('')}</ol>`
+    : '<div style="margin-top:8px;line-height:2;">&nbsp;</div>';
 
-                    <!-- QR Code -->
-                    <div class="qr">
-                      <img src="${qrCodeDataUrl}" alt="Verification QR Code">
-                      <div>Scan to Verify</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `;
+  return `<!DOCTYPE html><html><head><style>
+    ${BASE_CSS}
+    .order-header { text-align:center; margin-bottom:18px; }
+    .order-header .org-name { font-size:15px; font-weight:bold; text-transform:uppercase; line-height:1.5; }
+    .order-header .dept-name { font-size:13px; font-weight:bold; text-transform:uppercase; }
+    .order-header .address-line { font-size:12px; margin-top:4px; }
+    .order-title { text-align:center; font-size:16px; font-weight:bold; text-decoration:underline; margin:16px 0 20px; letter-spacing:2px; }
+    .order-body p { text-align:justify; line-height:1.7; margin-bottom:14px; font-size:13px; }
+    .order-footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:24px; }
+    .memo-block { font-size:12px; }
+    .signature-right { text-align:right; font-size:13px; }
+    .signature-right .sig-space { height:60px; }
+    .copy-section { margin-top:20px; font-size:12px; }
+  </style></head>
+  <body>
+    <div class="order-header">
+      <div style="display:flex;justify-content:center;margin-bottom:8px;">
+        <img src="${emblemBase64}" style="width:60px;height:auto;" alt="Emblem">
+      </div>
+      <div class="org-name">${orgName}</div>
+      ${department ? `<div class="dept-name">(${department})</div>` : ''}
+      ${defaultAddress ? `<div class="address-line">${defaultAddress.replace(/\n/g, ', ')}</div>` : ''}
+    </div>
+
+    <div class="order-title">ORDER</div>
+
+    <div class="order-body">${parsedBody}</div>
+
+    <div class="order-footer">
+      <div class="memo-block">
+        Memo No. E ${letter.memoNo || letter.refNo} -A,<br>
+        Copy for kind information and necessary action to:
+        ${copyListHtml}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+        <div class="signature-right">
+          <div class="sig-space"></div>
+          <div style="font-weight:bold;">(${sender.name || ''})</div>
+          <div>${sender.designation || ''}</div>
+          ${orgName ? `<div>${orgName}</div>` : ''}
+          <div>Dated ${letter.memoNo ? '' : ''}${new Date(letter.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        </div>
+        <div class="qr"><img src="${qrCodeDataUrl}" alt="QR" style="width:60px;height:60px;"><div style="font-size:8px;font-family:Arial;color:#666;">Scan to Verify</div></div>
+      </div>
+    </div>
+  </body></html>`;
+}
+
+// ── TEMPLATE: MPLAD LETTER ─────────────────────────────────────────────────────
+function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: string): string {
+  const sender = letter.sender;
+  const senderName = sender.name || '';
+  const designation = sender.designation || '';
+  const constituency = sender.constituency || '';
+  const state = sender.state || '';
+  const houseType = sender.houseType || '';
+  const defaultAddress = sender.defaultAddress || '';
+  const senderEmail = sender.email || '';
+
+  // Parse MPLAD table rows
+  let tableRows: { priorityNo: string; workDescription: string; cost: string }[] = [];
+  try {
+    if (letter.mplaadTableData) tableRows = JSON.parse(letter.mplaadTableData);
+  } catch (_) {}
+
+  const tableRowsHtml = tableRows.length > 0
+    ? tableRows.map(row => `
+      <tr>
+        <td style="border:1px solid #000;padding:6px 8px;text-align:center;vertical-align:top;">${row.priorityNo}</td>
+        <td style="border:1px solid #000;padding:6px 8px;vertical-align:top;">${row.workDescription}</td>
+        <td style="border:1px solid #000;padding:6px 8px;text-align:center;vertical-align:top;">${row.cost}</td>
+      </tr>`).join('')
+    : `<tr>
+        <td style="border:1px solid #000;padding:12px 8px;text-align:center;"></td>
+        <td style="border:1px solid #000;padding:12px 8px;"></td>
+        <td style="border:1px solid #000;padding:12px 8px;text-align:center;"></td>
+      </tr>`;
+
+  const addressLines = defaultAddress.split(/\n/).filter(Boolean);
+  const addressHtml = addressLines.map(l => `${l}<br>`).join('');
+
+  const copyToHtml = letter.copyTo
+    ? `<div style="margin-top:20px;font-size:13px;"><strong>Copy to:</strong> ${letter.copyTo.replace(/\n/g, '<br>')}</div>`
+    : `<div style="margin-top:20px;font-size:13px;"><strong>Copy to:</strong><br><br></div>`;
+
+  const parsedBody = parseBodyToParagraphs(letter.body);
+
+  return `<!DOCTYPE html><html><head><style>
+    ${BASE_CSS}
+    .mplad-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #8B0000; padding-bottom:10px; margin-bottom:24px; }
+    .mplad-left { flex:1; }
+    .mplad-left .mp-name { font-size:20px; font-weight:bold; color:#8B0000; font-family:'Times New Roman',serif; margin-bottom:4px; }
+    .mplad-left .mp-designation { font-size:13px; font-style:italic; }
+    .mplad-left .mp-info { font-size:12px; line-height:1.5; margin-top:4px; color:#333; }
+    .mplad-center { flex-shrink:0; text-align:center; padding:0 16px; }
+    .mplad-center img { width:60px; }
+    .mplad-right { flex:1; text-align:right; font-size:12px; line-height:1.6; }
+    .works-table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+    .works-table th { border:1px solid #000; padding:6px 8px; background:#f5f5f5; font-weight:bold; text-align:center; }
+    .works-table td { border:1px solid #000; padding:6px 8px; }
+    .ref-line { font-weight:bold; text-decoration:underline; text-align:center; margin-bottom:8px; font-size:13px; }
+  </style></head>
+  <body>
+    <div class="mplad-header">
+      <div class="mplad-left">
+        <div class="mp-name">${senderName}</div>
+        <div class="mp-designation">${houseType ? `Member of Parliament (${houseType})` : designation}</div>
+        <div class="mp-info">${constituency ? `Constituency: ${constituency}` : ''}${state ? `, ${state}` : ''}</div>
+      </div>
+      <div class="mplad-center"><img src="${emblemBase64}" alt="Emblem"></div>
+      <div class="mplad-right">
+        ${addressHtml}
+        ${senderEmail ? `e-mail: ${senderEmail}` : ''}
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;font-size:14px;">
+      To<br>
+      <strong>${letter.recipientName}</strong><br>
+      ${letter.recipientAddress.replace(/\n/g, '<br>')}
+    </div>
+
+    <div style="margin-bottom:10px;font-size:14px;">Dear Sir,</div>
+
+    <div class="ref-line">
+      Lr. No.${letter.refNo}, Dt: ${new Date(letter.date).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' }).replace(/\//g,'.')}
+    </div>
+
+    <div class="subject-line" style="text-align:center;margin-bottom:16px;">Subject: ${letter.subject}</div>
+
+    <div style="text-align:center;margin-bottom:12px;font-size:14px;">*** &nbsp;&nbsp;&nbsp; *** &nbsp;&nbsp;&nbsp; ***</div>
+
+    <div class="content" style="margin-bottom:12px;">${parsedBody}</div>
+
+    <table class="works-table">
+      <thead>
+        <tr>
+          <th style="width:10%;">Priority No.</th>
+          <th>Name and Nature of work / Equipment Name &amp; Location</th>
+          <th style="width:18%;">Approximate cost<br>(Rs. in lakh)</th>
+        </tr>
+      </thead>
+      <tbody>${tableRowsHtml}</tbody>
+    </table>
+
+    <div class="content" style="margin-top:14px;font-size:13px;">
+      <p>The technical, financial and administrative sanction for the above works may be issued after they have been duly scrutinized. The sanctioned works should be undertaken and completed as per the provisions of the MPLADS Guidelines. I may please be kept informed of the sanction and the progress of the works.</p>
+    </div>
+
+    <div class="footer-row">
+      <div style="flex:1;">
+        ${copyToHtml}
+      </div>
+      <div style="text-align:right;">
+        <div style="margin-bottom:4px;">Yours faithfully,</div>
+        <div style="height:55px;"></div>
+        <div style="font-weight:bold;">${senderName}</div>
+        <div>${designation || (houseType ? `M.P. (${houseType})` : '')}</div>
+        <div class="qr" style="margin-top:8px;margin-left:auto;">
+          <img src="${qrCodeDataUrl}" alt="QR" style="width:60px;height:60px;">
+          <div style="font-size:8px;font-family:Arial;color:#666;">Scan to Verify</div>
+        </div>
+      </div>
+    </div>
+  </body></html>`;
+}
+
+// ── MAIN EXPORT ────────────────────────────────────────────────────────────────
+export const generateLetterPDF = async (letter: any, qrToken: string, frontendUrl: string): Promise<Buffer> => {
+  const verifyUrl = `${frontendUrl}/verify?token=${qrToken}`;
+  const qrCodeDataUrl = await qrcode.toDataURL(verifyUrl, { margin: 1, width: 150 });
+  const emblemBase64 = getEmblemBase64();
+
+  const templateSlug = letter.template?.slug || 'general';
+
+  let html: string;
+  switch (templateSlug) {
+    case 'state-central':
+      html = buildGeneralLetterHTML(letter, qrCodeDataUrl, emblemBase64, true);
+      break;
+    case 'district-order':
+      html = buildDistrictOrderHTML(letter, qrCodeDataUrl, emblemBase64);
+      break;
+    case 'mplad':
+      html = buildMPLADLetterHTML(letter, qrCodeDataUrl, emblemBase64);
+      break;
+    case 'general':
+    default:
+      html = buildGeneralLetterHTML(letter, qrCodeDataUrl, emblemBase64, false);
+      break;
+  }
 
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -358,12 +400,12 @@ export const generateLetterPDF = async (letter: any, qrToken: string, frontendUr
       displayHeaderFooter: true,
       headerTemplate: '<span></span>',
       footerTemplate: `
-        <div style="font-size: 10px; text-align: center; width: 100%; font-family: 'Times New Roman', Times, serif; color: #666; padding-bottom: 5mm;">
+        <div style="font-size:10px;text-align:center;width:100%;font-family:'Times New Roman',Times,serif;color:#666;padding-bottom:5mm;">
           Page <span class="pageNumber"></span> of <span class="totalPages"></span>
         </div>
       `
     });
-    return pdfBuffer;
+    return pdfBuffer as Buffer;
   } finally {
     await page.close();
   }

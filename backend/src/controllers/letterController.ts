@@ -10,23 +10,23 @@ import requestIp from 'request-ip';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-local-dev';
 
-const SENDER_SELECT_FIELDS = { 
-  name: true, 
-  role: true, 
-  accountType: true,
-  designation: true, 
-  department: true, 
-  organization: true, 
-  employeeId: true, 
-  defaultAddress: true, 
+const SENDER_SELECT_FIELDS = {
+  name: true,
+  role: true,
+  mode: true,
+  designation: true,
+  department: true,
+  organization: true,
+  employeeId: true,
+  defaultAddress: true,
   email: true,
-  // Principal details (for assistant accounts)
-  principalName: true,
-  principalDesignation: true,
-  principalOrganization: true,
-  principalAddress: true,
-  principalSignatureUrl: true,
-  principalSealUrl: true,
+  // Political fields
+  constituency: true,
+  state: true,
+  houseType: true,
+  // Signature & Seal
+  signatureUrl: true,
+  sealUrl: true,
 };
 
 const DRAFTER_SELECT_FIELDS = {
@@ -37,20 +37,27 @@ const DRAFTER_SELECT_FIELDS = {
   employeeId: true,
   designation: true,
   operatorRole: true,
-  assistantName: true,
-  assistantRole: true,
 };
 
 export const createLetter = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { refNo, date, recipientName, recipientAddress, subject, body, signatureBlock, copyTo } = req.body;
+  const {
+    refNo, date, recipientName, recipientAddress,
+    subject, body, signatureBlock, copyTo,
+    templateId,
+    // MPLAD-specific
+    mplaadTableData,
+    // District Order specific
+    memoNo, orderCopyList,
+  } = req.body;
+
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
 
-  const senderId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
+  // senderId is always the main user account (the "owner" of the letter)
+  const senderId = req.user.role === 'OPERATOR' && req.user.parentUserId
+    ? req.user.parentUserId
+    : req.user.id;
 
-  // Determine who created this letter
-  const createdByType = req.user.role === 'OPERATOR' ? 'operator' : 'assistant';
-
-  // Capture creator's IP and location
+  const createdByType = req.user.role === 'OPERATOR' ? 'operator' : 'main_user';
   const creatorIp = requestIp.getClientIp(req);
   const geo = creatorIp ? geoip.lookup(creatorIp) : null;
   const creatorLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown';
@@ -64,18 +71,18 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
       subject,
       body,
       signatureBlock,
-      copyTo
+      copyTo,
     });
     const hash = crypto.createHash('sha256').update(letterContent).digest('hex');
     const tempId = generateId();
     const qrToken = jwt.sign({ letterId: tempId, hash }, JWT_SECRET);
 
-    // Start the database creation
     const letter = await prisma.letter.create({
       data: {
         id: tempId,
         senderId,
         draftedById: req.user.id,
+        templateId: templateId || undefined,
         refNo,
         date: new Date(date),
         recipientName,
@@ -84,9 +91,12 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
         body,
         signatureBlock,
         copyTo,
+        // Template-specific fields
+        mplaadTableData: mplaadTableData ? JSON.stringify(mplaadTableData) : undefined,
+        memoNo: memoNo || undefined,
+        orderCopyList: orderCopyList ? JSON.stringify(orderCopyList) : undefined,
         hash,
         qrToken,
-        // Audit trail
         createdByType,
         creatorIpAddress: creatorIp,
         creatorLocation,
@@ -94,12 +104,12 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
         draftedBy: { select: DRAFTER_SELECT_FIELDS },
+        template: { select: { id: true, name: true, slug: true } },
         _count: { select: { scanLogs: true } },
       }
     });
 
-    // Fire-and-forget PDF generation in the background
-    // This ensures the response is sent to the user instantly
+    // Fire-and-forget PDF generation
     setImmediate(async () => {
       try {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -127,17 +137,30 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
 
 export const getLetters = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
-  
-  // Operators see ALL letters under their parent account (same as before)
-  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
-  
+
+  // VISIBILITY RULES:
+  // - MAIN_USER sees ALL letters where senderId = their id (includes operator-drafted letters)
+  // - OPERATOR sees ONLY letters they personally drafted (draftedById = their id)
+  // - ADMIN sees everything
+  let whereClause: any;
+
+  if (req.user.role === 'ADMIN') {
+    whereClause = {};
+  } else if (req.user.role === 'OPERATOR') {
+    whereClause = { draftedById: req.user.id };
+  } else {
+    // MAIN_USER
+    whereClause = { senderId: req.user.id };
+  }
+
   try {
     const letters = await prisma.letter.findMany({
-      where: req.user.role === 'ADMIN' ? {} : { senderId: targetUserId },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
         draftedBy: { select: DRAFTER_SELECT_FIELDS },
+        template: { select: { id: true, name: true, slug: true } },
         _count: { select: { scanLogs: true } },
       },
     });
@@ -155,6 +178,7 @@ export const getLetterById = async (req: AuthRequest, res: Response): Promise<vo
       include: {
         sender: { select: SENDER_SELECT_FIELDS },
         draftedBy: { select: DRAFTER_SELECT_FIELDS },
+        template: { select: { id: true, name: true, slug: true } },
         scanLogs: { orderBy: { scannedAt: 'desc' }, take: 10 },
       },
     });
@@ -175,7 +199,10 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
 
     const letter = await prisma.letter.findUnique({
       where: { id: letterId },
-      include: { sender: { select: SENDER_SELECT_FIELDS } },
+      include: {
+        sender: { select: SENDER_SELECT_FIELDS },
+        template: { select: { id: true, name: true, slug: true } },
+      },
     });
 
     if (!letter) {
@@ -231,10 +258,10 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
       timestamp: new Date(),
     };
 
-    // Notify the Primary/Assistant Account
+    // Notify the main user account
     io.to(letter.senderId).emit('notification', payload);
 
-    // Notify the Operator who drafted the letter (if different)
+    // Notify the operator who drafted the letter (if different from main user)
     if (letter.draftedById && letter.draftedById !== letter.senderId) {
       io.to(letter.draftedById).emit('notification', payload);
     }
@@ -255,6 +282,7 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
         senderDesignation: letter.sender.designation,
         senderDepartment: letter.sender.department,
         senderOrganization: letter.sender.organization,
+        templateSlug: letter.template?.slug,
         createdAt: letter.createdAt,
       },
     });
@@ -268,7 +296,10 @@ export const getLetterPDF = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const letter = await prisma.letter.findUnique({
       where: { id },
-      include: { sender: { select: SENDER_SELECT_FIELDS } },
+      include: {
+        sender: { select: SENDER_SELECT_FIELDS },
+        template: { select: { id: true, name: true, slug: true } },
+      },
     });
     if (!letter) { res.status(404).json({ message: 'Letter not found' }); return; }
 
@@ -276,19 +307,16 @@ export const getLetterPDF = async (req: AuthRequest, res: Response): Promise<voi
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
 
-    // Serve pre-generated PDF if available (instant)
     if (letter.pdfData && letter.pdfData.length > 0) {
       console.log('[PDF] Serving cached PDF for letter:', id);
       res.send(letter.pdfData);
       return;
     }
 
-    // Fallback: generate on-demand for older letters without cached PDF
     console.log('[PDF] No cached PDF found, generating on-demand for letter:', id);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const pdfBuffer = await generateLetterPDF(letter, letter.qrToken, frontendUrl);
 
-    // Cache it for next time
     await prisma.letter.update({
       where: { id },
       data: { pdfData: Buffer.from(pdfBuffer) },
@@ -305,27 +333,31 @@ export const deleteLetter = async (req: AuthRequest, res: Response): Promise<voi
   const id = req.params['id'] as string;
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
 
-  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
-
   try {
-    const letter = await prisma.letter.findUnique({
-      where: { id },
-    });
+    const letter = await prisma.letter.findUnique({ where: { id } });
 
     if (!letter) {
       res.status(404).json({ message: 'Letter not found' });
       return;
     }
 
-    if (req.user.role !== 'ADMIN' && letter.senderId !== targetUserId) {
-      res.status(403).json({ message: 'You do not have permission to delete this letter' });
-      return;
+    if (req.user.role === 'ADMIN') {
+      // Admin can delete anything
+    } else if (req.user.role === 'OPERATOR') {
+      // Operator can only delete their own drafted letters
+      if (letter.draftedById !== req.user.id) {
+        res.status(403).json({ message: 'You can only delete letters you created' });
+        return;
+      }
+    } else {
+      // Main user can delete any letter under their account
+      if (letter.senderId !== req.user.id) {
+        res.status(403).json({ message: 'You do not have permission to delete this letter' });
+        return;
+      }
     }
 
-    await prisma.letter.delete({
-      where: { id },
-    });
-
+    await prisma.letter.delete({ where: { id } });
     res.json({ message: 'Letter deleted successfully' });
   } catch (error) {
     console.error('Delete letter error:', error);
@@ -336,7 +368,10 @@ export const deleteLetter = async (req: AuthRequest, res: Response): Promise<voi
 export const getAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) { res.status(401).json({ message: 'Unauthorized' }); return; }
 
-  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId ? req.user.parentUserId : req.user.id;
+  // For analytics, always show statistics for the main user account
+  const targetUserId = req.user.role === 'OPERATOR' && req.user.parentUserId
+    ? req.user.parentUserId
+    : req.user.id;
 
   try {
     const today = new Date();
@@ -349,24 +384,15 @@ export const getAnalytics = async (req: AuthRequest, res: Response): Promise<voi
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const lettersToday = await prisma.letter.count({
-      where: {
-        senderId: targetUserId,
-        createdAt: { gte: today }
-      }
+      where: { senderId: targetUserId, createdAt: { gte: today } }
     });
 
     const lettersYesterday = await prisma.letter.count({
-      where: {
-        senderId: targetUserId,
-        createdAt: { gte: yesterday, lt: today }
-      }
+      where: { senderId: targetUserId, createdAt: { gte: yesterday, lt: today } }
     });
 
     const recentLetters = await prisma.letter.findMany({
-      where: {
-        senderId: targetUserId,
-        createdAt: { gte: thirtyDaysAgo }
-      },
+      where: { senderId: targetUserId, createdAt: { gte: thirtyDaysAgo } },
       select: { createdAt: true }
     });
 

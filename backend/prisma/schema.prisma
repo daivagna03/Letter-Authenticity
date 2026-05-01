@@ -11,41 +11,39 @@ datasource db {
 }
 
 model User {
-  id            String      @id
+  id            String   @id
   name          String
-  role          Role        @default(PRIMARY)
-  accountType   AccountType @default(REGULAR)
-  email         String      @unique
-  employeeId    String?     @unique
+  role          Role     @default(MAIN_USER)
+  email         String   @unique
+  employeeId    String?  @unique
   passwordHash  String
-  isActive      Boolean     @default(true)
+  isActive      Boolean  @default(true)
 
-  // Principal details (on whose behalf letters are written — for ASSISTANT accounts)
-  principalName         String?
-  principalDesignation  String?
-  principalOrganization String?
-  principalAddress      String?
-  principalSignatureUrl String?
-  principalSealUrl      String?
+  // Mode: determines which templates are available and how letters are formatted
+  mode          Mode     @default(ORGANIZATION)
 
-  // Assistant details (the actual person operating the system)
-  assistantName    String?
-  assistantRole    String?
-  assistantContact String?
-
-  // Configuration fields (used by REGULAR accounts & backward compatibility)
+  // Organization mode fields
   designation   String?
   department    String?
   organization  String?
   defaultAddress String?
+
+  // Political mode fields (MLA / MP)
+  constituency  String?
+  state         String?
+  houseType     String?   // e.g. "Lok Sabha", "Rajya Sabha", "State Assembly"
+
+  // Signature & Seal (for PDF letterhead)
+  signatureUrl  String?
+  sealUrl       String?
 
   // Operator relations
   parentUserId  String?
   parentUser    User?    @relation("UserToOperator", fields: [parentUserId], references: [id])
   operators     User[]   @relation("UserToOperator")
 
-  // Operator-specific fields
-  operatorRole  String?   // e.g., "Data Entry Operator", "Clerk"
+  // Operator-specific display label
+  operatorRole  String?   // e.g. "Data Entry Operator", "Office Clerk"
 
   letters        Letter[]  @relation("LetterSender")
   draftedLetters Letter[]  @relation("LetterDrafter")
@@ -53,14 +51,26 @@ model User {
 }
 
 enum Role {
-  PRIMARY
+  MAIN_USER
   OPERATOR
   ADMIN
 }
 
-enum AccountType {
-  REGULAR
-  ASSISTANT
+enum Mode {
+  ORGANIZATION
+  POLITICAL
+}
+
+model Template {
+  id          String   @id
+  name        String
+  slug        String   @unique   // e.g. "general", "state-central", "district-order", "mplad"
+  mode        Mode
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  letters     Letter[]
 }
 
 model Letter {
@@ -69,6 +79,11 @@ model Letter {
   sender          User      @relation("LetterSender", fields: [senderId], references: [id])
   draftedById     String?
   draftedBy       User?     @relation("LetterDrafter", fields: [draftedById], references: [id])
+
+  // Template used for this letter
+  templateId      String?
+  template        Template? @relation(fields: [templateId], references: [id])
+
   refNo           String    @unique
   date            DateTime
   recipientName   String
@@ -77,12 +92,20 @@ model Letter {
   body            String    @db.Text
   signatureBlock  String
   copyTo          String?   @db.Text
-  hash            String    
-  qrToken         String    @unique 
+
+  // MPLAD-specific: JSON array of table rows [{priorityNo, workDescription, cost}]
+  mplaadTableData String?   @db.Text
+
+  // District Order specific
+  memoNo          String?
+  orderCopyList   String?   @db.Text   // JSON array of numbered copy recipients
+
+  hash            String
+  qrToken         String    @unique
   pdfData         Bytes?
 
   // Audit trail
-  createdByType    String?   // "assistant" | "operator"
+  createdByType    String?   // "main_user" | "operator"
   creatorIpAddress String?
   creatorLocation  String?
 
@@ -96,6 +119,6 @@ model ScanLog {
   letter      Letter   @relation(fields: [letterId], references: [id], onDelete: Cascade)
   scannedAt   DateTime @default(now())
   ipAddress   String?
-  location    String?  
-  deviceInfo  String?  
+  location    String?
+  deviceInfo  String?
 }

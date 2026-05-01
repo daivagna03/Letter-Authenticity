@@ -10,209 +10,206 @@ interface LetterRendererProps {
     recipientAddress: string;
     subject: string;
     body: string;
+    copyTo?: string;
+    templateSlug?: string;
+    memoNo?: string;
+    orderCopyList?: string[];
+    mplaadTableData?: { priorityNo: string; workDescription: string; cost: string }[];
+    mplaadOpeningPara?: string;
+    mplaadClosingPara?: string;
   };
   user: {
-    name: string;
-    email?: string;
-    role?: string;
-    accountType?: string;
-    designation?: string;
-    department?: string;
-    organization?: string;
-    defaultAddress?: string;
-    // Assistant mode fields
-    principalName?: string;
-    principalDesignation?: string;
-    principalOrganization?: string;
-    principalAddress?: string;
-    principalSignatureUrl?: string;
-    principalSealUrl?: string;
+    name: string; email?: string; mode?: string;
+    designation?: string; department?: string; organization?: string; defaultAddress?: string;
+    constituency?: string; state?: string; houseType?: string;
+    signatureUrl?: string; sealUrl?: string;
   } | null;
 }
 
+const EMBLEM_URL = 'https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg';
+
+const pageStyle: React.CSSProperties = {
+  width: '210mm', minHeight: '297mm', fontFamily: "'Times New Roman', Times, serif",
+  color: '#000', padding: '8mm 15mm 20mm 15mm', boxSizing: 'border-box', fontSize: '13px', background: '#fff',
+};
+
 export default function LetterRenderer({ letter, user }: LetterRendererProps) {
-  const isAssistant = user?.accountType === 'ASSISTANT';
-
-  const senderName = isAssistant 
-    ? (user?.principalName ? `Shri ${user.principalName}` : 'Shri Principal Name')
-    : (user ? `Shri ${user.name}` : 'Shri Member Name');
-
-  const designation = isAssistant ? (user?.principalDesignation || '') : (user?.designation || '');
-  const department = isAssistant ? '' : (user?.department || '');
-  const organization = isAssistant ? (user?.principalOrganization || '') : (user?.organization || '');
-  const defaultAddress = isAssistant ? (user?.principalAddress || '') : (user?.defaultAddress || '');
+  const slug = letter.templateSlug || 'general';
+  const senderName = user?.name ? `Shri ${user.name}` : 'Shri Member Name';
+  const designation = user?.designation || '';
+  const department = user?.department || '';
+  const organization = user?.organization || '';
+  const defaultAddress = user?.defaultAddress || '';
   const senderEmail = user?.email || '';
+  const constituency = user?.constituency || '';
+  const state = user?.state || '';
+  const houseType = user?.houseType || '';
+  const parsedBody = letter.body ? letter.body.split('\n').filter(p => p.trim()) : [];
+  const addressLines = defaultAddress ? defaultAddress.split(/[,\n]/).map(s => s.trim()).filter(Boolean) : [];
 
-  const parsedBody = letter.body ? letter.body.split('\n').filter((p: string) => p.trim() !== '') : [];
+  const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-') : '[Date]';
 
-  // Parse address into structured lines
-  const addressLines = defaultAddress
-    ? defaultAddress.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
-    : [];
-
-  return (
-    <div
-      className="bg-white shadow-sm border border-gray-200 mx-auto page"
-      style={{
-        width: '210mm',
-        minHeight: '297mm',
-        fontFamily: "'Times New Roman', Times, serif",
-        color: '#000',
-        position: 'relative',
-        padding: '8mm 15mm 20mm 15mm',
-        boxSizing: 'border-box',
-        fontSize: '13px',
-      }}
-    >
-      <div 
-        className="page-header" 
-        style={{
-          marginBottom: '10px',
-          marginTop: '0',
-          paddingTop: '0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          borderBottom: '1px solid #999',
-          paddingBottom: '10px'
-        }}
-      >
-        {/* Left: Name + Info */}
-        <div style={{ flex: 1, textAlign: 'left' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '3px', fontFamily: "'Times New Roman', Times, serif" }}>
-            {senderName}
-          </div>
-          {designation && (
-            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{designation}</div>
-          )}
-          {department && (
-            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{department}</div>
-          )}
-          {organization && (
-            <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{organization}</div>
-          )}
-        </div>
-
-        {/* Center: Emblem */}
-        <div style={{ flexShrink: 0, textAlign: 'center', padding: '0 20px' }}>
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-            alt="National Emblem"
-            style={{ width: '65px', height: 'auto' }}
-          />
-        </div>
-
-        {/* Right: Address (structured) */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.6, marginTop: '2px' }}>
-          <div style={{ textAlign: 'right', maxWidth: '250px' }}>
-            {addressLines.length > 0 ? (
-              addressLines.map((line: string, idx: number) => (
-                <div key={idx}>{line}{idx < addressLines.length - 1 ? ',' : ''}</div>
-              ))
-            ) : (
-              <span style={{ color: '#999', fontStyle: 'italic' }}>[Address not set]</span>
-            )}
-            {senderEmail && (
-              <div style={{ marginTop: '8px' }}>E-mail: {senderEmail}</div>
-            )}
-          </div>
-        </div>
+  // ── SHARED HEADER (General / State-Central) ──
+  const StandardHeader = () => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #999', paddingBottom: '10px', marginBottom: '16px' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '3px' }}>{senderName}</div>
+        {designation && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{designation}</div>}
+        {department && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{department}</div>}
+        {organization && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{organization}</div>}
       </div>
-
-      <div 
-        className="page-content content"
-        style={{
-          marginTop: '0',
-          textAlign: 'justify',
-          position: 'relative'
-        }}
-      >
-        {/* === To / Date === */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '14px' }}>
-          <div style={{ lineHeight: 1.6 }}>
-            To,<br />
-            <strong>Shri {letter.recipientName || '[Recipient Name]'}</strong><br />
-            <span dangerouslySetInnerHTML={{ __html: (letter.recipientAddress || '[Designation]').replace(/\n/g, '<br/>') }} />
-          </div>
-          <div style={{ whiteSpace: 'nowrap' }}>
-            Date: {letter.date
-              ? new Date(letter.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-')
-              : '[Date]'}
-          </div>
-        </div>
-
-        {/* === Subject === */}
-        <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '14px' }}>
-          Subject: {letter.subject || '[Subject]'}
-        </div>
-
-        {/* === Salutation === */}
-        <div style={{ marginBottom: '12px', fontSize: '14px' }}>Sir,</div>
-
-        {/* === Body === */}
-        <div>
-          {parsedBody.length > 0 ? (
-            parsedBody.map((p, idx) => (
-              <p key={idx} style={{
-                textAlign: 'justify',
-                lineHeight: 1.6,
-                marginBottom: '12px',
-                fontFamily: "'Times New Roman', serif",
-                fontSize: '13px'
-              }}>
-                {p}
-              </p>
-            ))
-          ) : (
-            <p style={{
-              textAlign: 'justify',
-              lineHeight: 1.6,
-              marginBottom: '12px',
-              fontFamily: "'Times New Roman', serif",
-              fontSize: '13px'
-            }}>[Letter Body]</p>
-          )}
-        </div>
-
-        {/* === Footer Row === */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', pageBreakInside: 'avoid' }}>
-          {/* === Signature & Seal === */}
-          <div style={{ position: 'relative', flex: 1 }}>
-            <div style={{ fontSize: '14px' }}>
-              <div>Yours sincerely,</div>
-              <div style={{ position: 'relative', height: '80px', display: 'flex', alignItems: 'center' }}>
-                {isAssistant && user?.principalSignatureUrl ? (
-                  <img src={user.principalSignatureUrl} style={{ height: '60px', maxWidth: '200px', objectFit: 'contain', mixBlendMode: 'multiply', position: 'relative', zIndex: 2 }} alt="Signature" />
-                ) : null}
-                {isAssistant && user?.principalSealUrl ? (
-                  <img src={user.principalSealUrl} style={{ height: '80px', width: '80px', objectFit: 'contain', opacity: 0.8, position: 'absolute', left: '40px', top: 0, zIndex: 1 }} alt="Seal" />
-                ) : null}
-              </div>
-              <div style={{ fontWeight: 'bold' }}>{senderName}</div>
-              <div style={{ fontSize: '13px' }}>
-                {designation}{organization ? `, ${organization}` : ''}
-              </div>
-            </div>
-          </div>
-
-          {/* === QR Placeholder === */}
-          <div 
-            className="qr"
-            style={{
-              width: '80px',
-              textAlign: 'center',
-              fontSize: '9px',
-              fontFamily: 'Arial, sans-serif',
-              color: '#999',
-            }}
-          >
-            <div style={{ width: '80px', height: '80px', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 3px auto', fontSize: '10px', color: '#aaa', border: '1px dashed #ccc' }}>
-              QR Code
-            </div>
-            Scan to Verify
-          </div>
+      <div style={{ flexShrink: 0, textAlign: 'center', padding: '0 20px' }}>
+        <img src={EMBLEM_URL} alt="Emblem" style={{ width: '65px', height: 'auto' }} />
+      </div>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '13px', lineHeight: 1.6 }}>
+        <div style={{ textAlign: 'right', maxWidth: '250px' }}>
+          {addressLines.length > 0 ? addressLines.map((l, i) => <div key={i}>{l}{i < addressLines.length - 1 ? ',' : ''}</div>) : <span style={{ color: '#999', fontStyle: 'italic' }}>[Address not set]</span>}
+          {senderEmail && <div style={{ marginTop: '8px' }}>E-mail: {senderEmail}</div>}
         </div>
       </div>
     </div>
   );
+
+  const QRPlaceholder = () => (
+    <div style={{ width: '70px', textAlign: 'center', fontSize: '9px', fontFamily: 'Arial', color: '#999' }}>
+      <div style={{ width: '70px', height: '70px', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 3px', border: '1px dashed #ccc', fontSize: '10px', color: '#aaa' }}>QR</div>
+      Scan to Verify
+    </div>
+  );
+
+  // ── GENERAL ──
+  if (slug === 'general' || slug === 'state-central') {
+    return (
+      <div style={pageStyle}>
+        <StandardHeader />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px' }}>
+          <div style={{ lineHeight: 1.6 }}>To,<br /><strong>Shri {letter.recipientName || '[Recipient]'}</strong><br /><span dangerouslySetInnerHTML={{ __html: (letter.recipientAddress || '').replace(/\n/g, '<br/>') }} /></div>
+          <div style={{ whiteSpace: 'nowrap' }}>Date: {formatDate(letter.date)}</div>
+        </div>
+        <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '14px' }}>Subject: {letter.subject || '[Subject]'}</div>
+        <div style={{ marginBottom: '12px', fontSize: '14px' }}>Sir,</div>
+        <div>
+          {parsedBody.length > 0 ? parsedBody.map((p, i) => <p key={i} style={{ textAlign: 'justify', lineHeight: 1.6, marginBottom: '12px' }}>{p}</p>)
+            : <p style={{ color: '#aaa', fontStyle: 'italic' }}>[Letter body will appear here]</p>}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '30px' }}>
+          <div>
+            <div style={{ fontSize: '14px' }}>Yours sincerely,</div>
+            <div style={{ height: '60px' }} />
+            <div style={{ fontWeight: 'bold' }}>{senderName}</div>
+            <div style={{ fontSize: '13px' }}>{designation}{organization ? `, ${organization}` : ''}</div>
+          </div>
+          <QRPlaceholder />
+        </div>
+        {slug === 'state-central' && (
+          <div style={{ marginTop: '20px', fontSize: '13px', lineHeight: 1.7 }}>
+            <strong>Copy to:</strong><br />
+            {letter.copyTo ? <span dangerouslySetInnerHTML={{ __html: letter.copyTo.replace(/\n/g, '<br/>') }} /> : <span style={{ color: '#aaa' }}>[Copy to recipients]</span>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── DISTRICT ORDER ──
+  if (slug === 'district-order') {
+    return (
+      <div style={pageStyle}>
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px', height: 'auto', marginBottom: '6px' }} />
+          <div style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: 1.5 }}>{organization || '[Organization Name]'}</div>
+          {department && <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase' }}>({department})</div>}
+          {defaultAddress && <div style={{ fontSize: '12px', marginTop: '4px' }}>{defaultAddress.replace(/\n/g, ', ')}</div>}
+        </div>
+        <div style={{ textAlign: 'center', fontSize: '16px', fontWeight: 'bold', textDecoration: 'underline', margin: '16px 0 20px', letterSpacing: '2px' }}>ORDER</div>
+        <div style={{ textAlign: 'justify' }}>
+          {parsedBody.length > 0 ? parsedBody.map((p, i) => <p key={i} style={{ lineHeight: 1.7, marginBottom: '14px', fontSize: '13px' }}>{p}</p>)
+            : <p style={{ color: '#aaa', fontStyle: 'italic' }}>[Order body will appear here]</p>}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '24px' }}>
+          <div style={{ fontSize: '12px' }}>
+            Memo No. E {letter.memoNo || letter.refNo || ''} -A,<br />
+            Copy for kind information and necessary action to:
+            {(letter.orderCopyList || []).length > 0 ? (
+              <ol style={{ margin: '6px 0 0 18px', lineHeight: 1.7 }}>
+                {(letter.orderCopyList || []).map((item, i) => <li key={i}>{item}</li>)}
+              </ol>
+            ) : <div style={{ color: '#aaa', marginTop: '4px' }}>[Copy recipients]</div>}
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '13px' }}>
+            <div style={{ height: '50px' }} />
+            <div style={{ fontWeight: 'bold' }}>({user?.name || ''})</div>
+            <div>{designation}</div>
+            {organization && <div>{organization}</div>}
+            <QRPlaceholder />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── MPLAD ──
+  if (slug === 'mplad') {
+    const rows = letter.mplaadTableData || [];
+    return (
+      <div style={pageStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #8B0000', paddingBottom: '10px', marginBottom: '20px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#8B0000' }}>{user?.name || '[Name]'}</div>
+            <div style={{ fontSize: '13px', fontStyle: 'italic' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
+            <div style={{ fontSize: '12px', color: '#333', marginTop: '4px' }}>{constituency ? `Constituency: ${constituency}` : ''}{state ? `, ${state}` : ''}</div>
+          </div>
+          <div style={{ flexShrink: 0, padding: '0 16px' }}><img src={EMBLEM_URL} alt="Emblem" style={{ width: '55px' }} /></div>
+          <div style={{ flex: 1, textAlign: 'right', fontSize: '12px', lineHeight: 1.6 }}>
+            {addressLines.map((l, i) => <div key={i}>{l}</div>)}
+            {senderEmail && <div>e-mail: {senderEmail}</div>}
+          </div>
+        </div>
+        <div style={{ marginBottom: '16px', fontSize: '14px' }}>To<br /><strong>{letter.recipientName || '[Recipient]'}</strong><br /><span dangerouslySetInnerHTML={{ __html: (letter.recipientAddress || '').replace(/\n/g, '<br/>') }} /></div>
+        <div style={{ marginBottom: '10px' }}>Dear Sir,</div>
+        <div style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '8px' }}>
+          Lr. No.{letter.refNo}, Dt: {formatDate(letter.date)}
+        </div>
+        <div style={{ fontWeight: 'bold', textAlign: 'center', marginBottom: '16px' }}>Subject: {letter.subject || '[Subject]'}</div>
+        <div style={{ textAlign: 'center', marginBottom: '12px' }}>*** &nbsp; *** &nbsp; ***</div>
+        <p style={{ textAlign: 'justify', marginBottom: '12px' }}>{letter.mplaadOpeningPara || letter.body || '[Opening paragraph]'}</p>
+        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '12px 0', fontSize: '13px' }}>
+          <thead>
+            <tr>
+              <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5', width: '10%' }}>Priority No.</th>
+              <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5' }}>Name and Nature of work / Equipment Name &amp; Location</th>
+              <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5', width: '18%' }}>Approximate cost (Rs. in lakh)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length > 0 ? rows.map((r, i) => (
+              <tr key={i}>
+                <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{r.priorityNo}</td>
+                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{r.workDescription}</td>
+                <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{r.cost}</td>
+              </tr>
+            )) : (
+              <tr><td style={{ border: '1px solid #000', padding: '14px 8px' }} colSpan={3}>&nbsp;</td></tr>
+            )}
+          </tbody>
+        </table>
+        <p style={{ textAlign: 'justify', marginTop: '14px', fontSize: '13px' }}>{letter.mplaadClosingPara || '[Closing paragraph]'}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+          <div style={{ fontSize: '13px' }}>
+            <strong>Copy to:</strong><br />
+            {letter.copyTo ? <span dangerouslySetInnerHTML={{ __html: letter.copyTo.replace(/\n/g, '<br/>') }} /> : <span style={{ color: '#aaa' }}>[Copy to]</span>}
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '13px' }}>
+            <div>Yours faithfully,</div>
+            <div style={{ height: '50px' }} />
+            <div style={{ fontWeight: 'bold' }}>{user?.name || ''}</div>
+            <div>{designation}</div>
+            <QRPlaceholder />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <div style={{ ...pageStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>Select a template to preview</div>;
 }
