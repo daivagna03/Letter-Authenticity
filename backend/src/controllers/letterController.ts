@@ -39,6 +39,32 @@ const DRAFTER_SELECT_FIELDS = {
   operatorRole: true,
 };
 
+/**
+ * Standardizes letter content for consistent hashing between creation and verification.
+ * Handles Date objects and null/undefined values to prevent false "Tampering Detected" flags.
+ */
+const getHashableContent = (data: {
+  refNo: string;
+  date: Date | string;
+  recipientName: string;
+  recipientAddress: string;
+  subject: string;
+  body: string;
+  signatureBlock: string;
+  copyTo?: string | null;
+}) => {
+  return JSON.stringify({
+    refNo: data.refNo,
+    date: new Date(data.date).toISOString(),
+    recipientName: data.recipientName,
+    recipientAddress: data.recipientAddress,
+    subject: data.subject,
+    body: data.body,
+    signatureBlock: data.signatureBlock,
+    copyTo: data.copyTo || '', // Standardize null/undefined/empty to empty string
+  });
+};
+
 export const createLetter = async (req: AuthRequest, res: Response): Promise<void> => {
   const {
     refNo, date, recipientName, recipientAddress,
@@ -64,9 +90,9 @@ export const createLetter = async (req: AuthRequest, res: Response): Promise<voi
   const creatorLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown';
 
   try {
-    const letterContent = JSON.stringify({
+    const letterContent = getHashableContent({
       refNo,
-      date: new Date(date).toISOString(),
+      date,
       recipientName,
       recipientAddress,
       subject,
@@ -215,9 +241,9 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
       return;
     }
 
-    const letterContent = JSON.stringify({
+    const letterContent = getHashableContent({
       refNo: letter.refNo,
-      date: new Date(letter.date).toISOString(),
+      date: letter.date,
       recipientName: letter.recipientName,
       recipientAddress: letter.recipientAddress,
       subject: letter.subject,
@@ -225,7 +251,6 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
       signatureBlock: letter.signatureBlock,
       copyTo: letter.copyTo,
     });
-
     const currentHash = crypto.createHash('sha256').update(letterContent).digest('hex');
     const isAuthentic = currentHash === storedHash && currentHash === letter.hash;
 

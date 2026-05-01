@@ -117,7 +117,16 @@ async function VerifyContent({ token }: { token: string }) {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Verification Status</p>
               <p className="font-mono text-[10px] text-slate-500 break-all">
                 Digital fingerprint {isAuthentic ? 'matches' : 'does NOT match'} original record.
-                Verified: {new Date().toLocaleString()}
+                Verified: {new Date().toLocaleString('en-IN', { 
+                  timeZone: 'Asia/Kolkata',
+                  day: 'numeric',
+                  month: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  second: 'numeric',
+                  hour12: true 
+                })}
               </p>
             </div>
           </div>
