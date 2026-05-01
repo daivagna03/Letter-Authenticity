@@ -220,10 +220,7 @@ export default function CreateLetterModal({
                     <label className={labelClass}>Memo No.</label>
                     <input className={inputClass} value={formData.memoNo} onChange={(e) => setFormData({ ...formData, memoNo: e.target.value })} />
                   </div>
-                  <div>
-                    <label className={labelClass}>Subject</label>
-                    <input required className={inputClass} value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} />
-                  </div>
+
                   <div>
                     <label className={labelClass}>Order Body</label>
                     <textarea required rows={8} className={`${inputClass} font-serif`} value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} />
