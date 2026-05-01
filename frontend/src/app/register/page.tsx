@@ -43,7 +43,7 @@ export default function RegisterPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        employeeId: formData.employeeId || undefined,
+        employeeId: mode === 'ORGANIZATION' ? (formData.employeeId || undefined) : undefined,
         mode,
       };
 
@@ -138,20 +138,27 @@ export default function RegisterPage() {
                 type="text" required className={inputClass}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={mode === 'POLITICAL' ? 'e.g. Ravi Chandra Vaddiraju' : 'Your full name'}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* Mode-specific Email/ID row */}
+            {mode === 'ORGANIZATION' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Official Email *</label>
+                  <input type="email" required className={inputClass} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                </div>
+                <div>
+                  <label className={labelClass}>Employee ID</label>
+                  <input type="text" className={inputClass} value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} />
+                </div>
+              </div>
+            ) : (
               <div>
                 <label className={labelClass}>Official Email *</label>
                 <input type="email" required className={inputClass} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
               </div>
-              <div>
-                <label className={labelClass}>Employee ID</label>
-                <input type="text" className={inputClass} value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} />
-              </div>
-            </div>
+            )}
 
             {/* Organization Mode Fields */}
             {mode === 'ORGANIZATION' && (
@@ -159,20 +166,20 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Designation</label>
-                    <input type="text" className={inputClass} value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} placeholder="e.g. Manager" />
+                    <input type="text" className={inputClass} value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>Department</label>
-                    <input type="text" className={inputClass} value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} placeholder="e.g. Operations" />
+                    <input type="text" className={inputClass} value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
                   </div>
                 </div>
                 <div>
                   <label className={labelClass}>Organization</label>
-                  <input type="text" className={inputClass} value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} placeholder="e.g. Acme Corp" />
+                  <input type="text" className={inputClass} value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} />
                 </div>
                 <div>
                   <label className={labelClass}>Office Address (for letterhead)</label>
-                  <textarea rows={2} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} placeholder="Street, City, PIN" />
+                  <textarea rows={2} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} />
                 </div>
               </>
             )}
@@ -198,16 +205,16 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Constituency *</label>
-                    <input type="text" required className={inputClass} value={formData.constituency} onChange={(e) => setFormData({ ...formData, constituency: e.target.value })} placeholder="e.g. Karimnagar" />
+                    <input type="text" required className={inputClass} value={formData.constituency} onChange={(e) => setFormData({ ...formData, constituency: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>State *</label>
-                    <input type="text" required className={inputClass} value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} placeholder="e.g. Telangana" />
+                    <input type="text" required className={inputClass} value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
                   </div>
                 </div>
                 <div>
                   <label className={labelClass}>Office Address (for letterhead)</label>
-                  <textarea rows={2} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} placeholder="Office/Residential address" />
+                  <textarea rows={2} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} />
                 </div>
               </>
             )}
