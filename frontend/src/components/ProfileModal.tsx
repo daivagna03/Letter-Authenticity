@@ -119,7 +119,7 @@ export default function ProfileModal({ isOpen, onClose, onProfileUpdate }: { isO
                 <div><label className={lc}>Email</label><input type="email" className={ic} value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} /></div>
               </div>
 
-              {!isPolitical && (
+              {isMainUser && !isPolitical && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className={lc}>Designation</label><input className={ic} value={profileForm.designation} onChange={e => setProfileForm({ ...profileForm, designation: e.target.value })} /></div>
@@ -130,7 +130,7 @@ export default function ProfileModal({ isOpen, onClose, onProfileUpdate }: { isO
                 </>
               )}
 
-              {isPolitical && (
+              {isMainUser && isPolitical && (
                 <>
                   <div>
                     <label className={lc}>House / Designation</label>
@@ -150,10 +150,12 @@ export default function ProfileModal({ isOpen, onClose, onProfileUpdate }: { isO
                 </>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className={lc}>Signature URL</label><input className={ic} value={profileForm.signatureUrl} onChange={e => setProfileForm({ ...profileForm, signatureUrl: e.target.value })} placeholder="https://..." /></div>
-                <div><label className={lc}>Seal URL</label><input className={ic} value={profileForm.sealUrl} onChange={e => setProfileForm({ ...profileForm, sealUrl: e.target.value })} placeholder="https://..." /></div>
-              </div>
+              {isMainUser && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className={lc}>Signature URL</label><input className={ic} value={profileForm.signatureUrl} onChange={e => setProfileForm({ ...profileForm, signatureUrl: e.target.value })} placeholder="https://..." /></div>
+                  <div><label className={lc}>Seal URL</label><input className={ic} value={profileForm.sealUrl} onChange={e => setProfileForm({ ...profileForm, sealUrl: e.target.value })} placeholder="https://..." /></div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={onClose} className="flex-1 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 font-semibold text-sm">Close</button>
