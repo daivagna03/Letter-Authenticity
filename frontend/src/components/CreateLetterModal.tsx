@@ -125,32 +125,7 @@ export default function CreateLetterModal({
   }[templateSlug] || 'bg-slate-100 text-slate-600';
 
   // ── Shared recipient + date fields ──────────────────────────────────────────
-  const RecipientDateFields = () => (
-    <>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Reference No</label>
-          <input required className={inputClass} value={formData.refNo} onChange={(e) => setFormData({ ...formData, refNo: e.target.value })} />
-        </div>
-        <div>
-          <label className={labelClass}>Date</label>
-          <input type="date" required className={inputClass} value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
-        </div>
-      </div>
-      <div>
-        <label className={labelClass}>Recipient Name</label>
-        <input required className={inputClass} value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} />
-      </div>
-      <div>
-        <label className={labelClass}>Recipient Designation</label>
-        <input className={inputClass} value={formData.recipientDesignation} onChange={(e) => setFormData({ ...formData, recipientDesignation: e.target.value })} />
-      </div>
-      <div>
-        <label className={labelClass}>Recipient Address</label>
-        <textarea rows={2} className={inputClass} value={formData.recipientAddressDetail} onChange={(e) => setFormData({ ...formData, recipientAddressDetail: e.target.value })} />
-      </div>
-    </>
-  );
+  // ── Form UI Helpers ──
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -180,7 +155,29 @@ export default function CreateLetterModal({
               {/* ── GENERAL / STATE-CENTRAL ── */}
               {(templateSlug === 'general' || templateSlug === 'state-central') && (
                 <>
-                  <RecipientDateFields />
+                  {/* Common Recipient & Date Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Reference No</label>
+                      <input required className={inputClass} value={formData.refNo} onChange={(e) => setFormData({ ...formData, refNo: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Date</label>
+                      <input type="date" required className={inputClass} value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Recipient Name</label>
+                    <input required className={inputClass} value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Recipient Designation</label>
+                    <input className={inputClass} value={formData.recipientDesignation} onChange={(e) => setFormData({ ...formData, recipientDesignation: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Recipient Address</label>
+                    <textarea rows={2} className={inputClass} value={formData.recipientAddressDetail} onChange={(e) => setFormData({ ...formData, recipientAddressDetail: e.target.value })} />
+                  </div>
                   <div>
                     <label className={labelClass}>Subject</label>
                     <input required className={inputClass} value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} />
