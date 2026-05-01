@@ -20,10 +20,22 @@ export default function DashboardPage() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isTemplatePicker, setIsTemplatePicker] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [showProfileToast, setShowProfileToast] = useState(false);
   const [showAddressReminder, setShowAddressReminder] = useState(false);
+
+  const openNewLetter = () => {
+    setSelectedTemplate(null);
+    setIsTemplatePicker(true);
+  };
+
+  const pickTemplate = (tmpl: Template) => {
+    setSelectedTemplate(tmpl);
+    setIsTemplatePicker(false);
+    setIsModalOpen(true);
+  };
 
   const isPolitical = user?.mode === 'POLITICAL';
   const isMainUser = user?.role === 'MAIN_USER';
@@ -170,7 +182,7 @@ export default function DashboardPage() {
                   <h2 className="text-3xl font-bold text-slate-900">Communication Dashboard</h2>
                   <p className="text-slate-500 mt-1">Manage and track your official correspondence</p>
                 </div>
-                <button onClick={() => { setSelectedTemplate(null); setIsModalOpen(true); }}
+                <button onClick={openNewLetter}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-200">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
                   New Letter
@@ -348,6 +360,41 @@ export default function DashboardPage() {
         templateSlug={selectedTemplate?.slug || 'general'}
         templateName={selectedTemplate?.name || 'General Letter'}
       />
+
+      {/* Template Picker Modal */}
+      {isTemplatePicker && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Choose a Template</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Select the letter format you want to create</p>
+              </div>
+              <button onClick={() => setIsTemplatePicker(false)} className="text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-2 gap-4">
+              {templates.length === 0 ? (
+                <div className="col-span-2 text-center py-10 text-slate-400 italic">No templates available</div>
+              ) : (
+                templates.map(tmpl => (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => pickTemplate(tmpl)}
+                    className="text-left p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all group"
+                  >
+                    <div className={`h-1.5 w-12 rounded-full mb-3 bg-gradient-to-r ${templateCardColor(tmpl.slug)}`} />
+                    <div className="text-2xl mb-2">{templateIcon(tmpl.slug)}</div>
+                    <div className="font-bold text-slate-800 group-hover:text-indigo-700">{tmpl.name}</div>
+                    <div className="text-xs text-slate-500 mt-1 leading-relaxed">{tmpl.description}</div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onProfileUpdate={triggerProfileToast} />
 

@@ -258,12 +258,8 @@ export default function CreateLetterModal({
                     </div>
                   </div>
                   <div>
-                    <label className={labelClass}>To (Recipient Name)</label>
+                    <label className={labelClass}>To (Recipient Name &amp; Designation)</label>
                     <input required className={inputClass} value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Recipient Designation</label>
-                    <input className={inputClass} value={formData.recipientDesignation} onChange={(e) => setFormData({ ...formData, recipientDesignation: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelClass}>Recipient Address</label>

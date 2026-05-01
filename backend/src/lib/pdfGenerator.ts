@@ -336,7 +336,7 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
         <tr>
           <th style="width:10%;">Priority No.</th>
           <th>Name and Nature of work / Equipment Name &amp; Location</th>
-          <th style="width:18%;">Approximate cost<br>(Rs. in lakh)</th>
+          <th style="width:18%;">Approximate cost</th>
         </tr>
       </thead>
       <tbody>${tableRowsHtml}</tbody>

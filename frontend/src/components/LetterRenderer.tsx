@@ -178,7 +178,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             <tr>
               <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5', width: '10%' }}>Priority No.</th>
               <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5' }}>Name and Nature of work / Equipment Name &amp; Location</th>
-              <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5', width: '18%' }}>Approximate cost (Rs. in lakh)</th>
+              <th style={{ border: '1px solid #000', padding: '6px 8px', background: '#f5f5f5', width: '18%' }}>Approximate cost</th>
             </tr>
           </thead>
           <tbody>
@@ -194,18 +194,20 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
           </tbody>
         </table>
         <p style={{ textAlign: 'justify', marginTop: '14px', fontSize: '13px' }}>{letter.mplaadClosingPara || '[Closing paragraph]'}</p>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-          <div style={{ fontSize: '13px' }}>
-            <strong>Copy to:</strong><br />
-            {letter.copyTo ? <span dangerouslySetInnerHTML={{ __html: letter.copyTo.replace(/\n/g, '<br/>') }} /> : <span style={{ color: '#aaa' }}>[Copy to]</span>}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <div style={{ textAlign: 'right', fontSize: '13px' }}>
             <div>Yours faithfully,</div>
             <div style={{ height: '50px' }} />
             <div style={{ fontWeight: 'bold' }}>{user?.name || ''}</div>
-            <div>{designation}</div>
+            <div>{designation || (houseType ? `M.P. (${houseType})` : '')}</div>
             <QRPlaceholder />
           </div>
+        </div>
+        <div style={{ marginTop: '20px', fontSize: '13px', lineHeight: 1.8 }}>
+          <strong>Copy to:</strong>{' '}
+          {letter.copyTo
+            ? <span dangerouslySetInnerHTML={{ __html: letter.copyTo.replace(/\n/g, '<br/>') }} />
+            : <span style={{ color: '#aaa' }}>[Copy to]</span>}
         </div>
       </div>
     );
