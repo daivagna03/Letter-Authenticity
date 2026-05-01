@@ -322,7 +322,7 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
     <div class="mplad-header" id="mplad-v3">
       <div class="mplad-left">
         <div class="mp-name">Shri ${sender.name || ''}</div>
-        <div class="mp-designation">${houseType ? `Member of Parliament (${houseType})` : designation}</div>
+        <div class="mp-designation">${designation}</div>
         ${constituency ? `<div class="mp-info-line">Constituency: ${constituency}</div>` : ''}
         ${state ? `<div class="mp-info-line">State: ${state}</div>` : ''}
       </div>
@@ -371,7 +371,7 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
         <div style="margin-bottom:4px;font-size:14px;">Yours faithfully,</div>
         <div style="height:55px;"></div>
         <div style="font-weight:bold;font-size:14px;">${senderName}</div>
-        <div style="font-size:13px;">${designation || (houseType ? `M.P. (${houseType})` : '')}</div>
+        <div style="font-size:13px;">${designation}</div>
       </div>
     </div>
     <div class="qr-fixed"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>

@@ -211,7 +211,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #8B0000', paddingBottom: '12px', marginBottom: '24px' }}>
           <div style={{ flex: 1.2 }}>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#000', fontFamily: "'Times New Roman', serif", marginBottom: '4px' }}>Shri {effectiveUser?.name || '[Name]'}</div>
-            <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#000', marginBottom: '6px' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
+            <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#000', marginBottom: '6px' }}>{designation}</div>
             <div style={{ fontSize: '13px', color: '#000', lineHeight: 1.4 }}>
               {constituency && <div style={{ marginBottom: '2px' }}>Constituency: {constituency}</div>}
               {state && <div style={{ marginBottom: '2px' }}>State: {state}</div>}
@@ -263,7 +263,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
               )}
             </div>
             <div style={{ fontWeight: 'bold' }}>{effectiveUser?.name || ''}</div>
-            <div>{designation || (houseType ? `M.P. (${houseType})` : '')}</div>
+            <div>{designation}</div>
           </div>
         </div>
         <QRPlaceholder />
