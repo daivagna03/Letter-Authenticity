@@ -218,8 +218,12 @@ export default function DashboardPage() {
                                   </span>
                                 )}
                               </div>
-                              <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-all">{letter.subject}</h4>
-                              <p className="text-sm text-slate-500 truncate max-w-md">To: {letter.recipientName}</p>
+                              <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-all">
+                                {letter.subject || (letter.template?.slug === 'district-order' ? 'Official District Order' : letter.template?.name) || 'Untitled Correspondence'}
+                              </h4>
+                              <p className="text-sm text-slate-500 truncate max-w-md">
+                                {letter.recipientName ? `To: ${letter.recipientName}` : (letter.memoNo ? `Memo: ${letter.memoNo}` : 'Official Record')}
+                              </p>
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="text-right mr-2">
