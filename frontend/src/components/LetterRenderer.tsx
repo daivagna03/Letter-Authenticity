@@ -19,6 +19,7 @@ interface LetterRendererProps {
     mplaadClosingPara?: string;
     districtOrgName?: string;
     districtDeptName?: string;
+    districtName?: string;
   };
   user: {
     name: string; email?: string; mode?: string;
