@@ -23,13 +23,18 @@ export default function DashboardPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [showProfileToast, setShowProfileToast] = useState(false);
+  const [showAddressReminder, setShowAddressReminder] = useState(false);
 
   const isPolitical = user?.mode === 'POLITICAL';
   const isMainUser = user?.role === 'MAIN_USER';
   const modeColor = isPolitical ? 'bg-purple-500' : 'bg-emerald-500';
   const modeLabel = isPolitical ? '🟣 Political' : '🟢 Organization';
 
-  const triggerProfileToast = () => { setShowProfileToast(true); setTimeout(() => setShowProfileToast(false), 3000); };
+  const triggerProfileToast = () => { 
+    setShowProfileToast(true); 
+    setShowAddressReminder(false);
+    setTimeout(() => setShowProfileToast(false), 3000); 
+  };
 
   const fetchLetters = async () => {
     try { const r = await api.get('/letters'); setLetters(r.data); } catch (e) { console.error(e); } finally { setLoading(false); }
@@ -41,7 +46,16 @@ export default function DashboardPage() {
     try { const r = await api.get('/templates'); setTemplates(r.data); } catch (e) { console.error(e); }
   };
 
-  useEffect(() => { fetchLetters(); fetchAnalytics(); fetchTemplates(); }, []);
+  useEffect(() => { 
+    fetchLetters(); 
+    fetchAnalytics(); 
+    fetchTemplates();
+
+    // Show address reminder if missing and user is main user
+    if (user && isMainUser && !user.defaultAddress) {
+      setTimeout(() => setShowAddressReminder(true), 1500);
+    }
+  }, [user]);
 
   const downloadPDF = async (id: string, refNo: string) => {
     try {
@@ -66,9 +80,7 @@ export default function DashboardPage() {
     return { date: dateStr, count: existing ? (existing as any).count : 0 };
   });
   const maxCount = Math.max(1, ...paddedCalendarData.map(d => d.count));
-  const diffCount = analytics.todayCount - analytics.yesterdayCount;
-  const percentChange = analytics.yesterdayCount > 0 ? Math.round((diffCount / analytics.yesterdayCount) * 100) : (analytics.todayCount > 0 ? 100 : 0);
-
+  
   const navItem = (view: ActiveView, label: string, icon: React.ReactNode) => (
     <button onClick={() => setActiveView(view)}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left ${activeView === view ? 'bg-white/10 text-indigo-300' : 'text-slate-400 hover:bg-white/5 hover:text-indigo-300'}`}>
@@ -132,6 +144,23 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="flex-1 ml-72 p-10">
         <div className="max-w-6xl mx-auto">
+
+          {/* Address Reminder Overlay */}
+          {showAddressReminder && (
+            <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-2xl">📍</div>
+                <div>
+                  <h4 className="font-bold text-amber-900">Office Address Missing</h4>
+                  <p className="text-sm text-amber-700">Please set your office address in Profile Settings to appear correctly on letterheads.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowAddressReminder(false)} className="px-4 py-2 text-sm font-semibold text-amber-600 hover:text-amber-800">Dismiss</button>
+                <button onClick={() => { setIsProfileOpen(true); setShowAddressReminder(false); }} className="px-5 py-2 bg-amber-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-amber-700 transition-all">Set Address Now</button>
+              </div>
+            </div>
+          )}
 
           {/* ── DASHBOARD VIEW ── */}
           {activeView === 'dashboard' && (
@@ -219,13 +248,6 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <div className="bg-indigo-900 rounded-2xl p-6 text-white">
-                    <h4 className="font-bold mb-2">QR Authentication</h4>
-                    <p className="text-xs text-indigo-200 leading-relaxed">Every letter contains a unique cryptographic hash. Scan the QR code to verify document integrity.</p>
-                    <div className="mt-4 pt-4 border-t border-indigo-800 flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400">
-                      <span>SHA-256</span><span>JWT Signed</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </>
@@ -244,12 +266,10 @@ export default function DashboardPage() {
                 <div className="bg-[#f8fafc] rounded-xl p-8 border border-slate-100 flex flex-col justify-between h-48">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Documents Today</p>
                   <div className="text-6xl font-black text-slate-800 tracking-tighter">{analytics.todayCount}</div>
-                  <p className="text-sm font-bold text-slate-500">{percentChange >= 0 ? '+' : ''}{percentChange}% from yesterday</p>
                 </div>
                 <div className="bg-[#f8fafc] rounded-xl p-8 border border-slate-100 flex flex-col justify-between h-48">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Documents Yesterday</p>
                   <div className="text-6xl font-black text-slate-800 tracking-tighter">{analytics.yesterdayCount}</div>
-                  <p className="text-sm font-bold text-slate-400 italic">Standard performance window</p>
                 </div>
               </div>
               <div className="bg-white rounded-xl p-8 border border-slate-100">

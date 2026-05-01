@@ -18,7 +18,6 @@ export default function RegisterPage() {
     designation: '',
     department: '',
     organization: '',
-    defaultAddress: '',
     // Political mode fields
     constituency: '',
     state: '',
@@ -43,7 +42,7 @@ export default function RegisterPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        employeeId: mode === 'ORGANIZATION' ? (formData.employeeId || undefined) : undefined,
+        employeeId: formData.employeeId || undefined, // Used for both modes now
         mode,
       };
 
@@ -51,7 +50,6 @@ export default function RegisterPage() {
         payload.designation = formData.designation || undefined;
         payload.department = formData.department || undefined;
         payload.organization = formData.organization || undefined;
-        payload.defaultAddress = formData.defaultAddress || undefined;
       } else {
         payload.designation = formData.houseType
           ? `${formData.houseType === 'Lok Sabha' || formData.houseType === 'Rajya Sabha' ? 'Member of Parliament' : 'Member of Legislative Assembly'}`
@@ -141,24 +139,16 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Mode-specific Email/ID row */}
-            {mode === 'ORGANIZATION' ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Official Email *</label>
-                  <input type="email" required className={inputClass} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-                </div>
-                <div>
-                  <label className={labelClass}>Employee ID</label>
-                  <input type="text" className={inputClass} value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} />
-                </div>
-              </div>
-            ) : (
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Official Email *</label>
                 <input type="email" required className={inputClass} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
               </div>
-            )}
+              <div>
+                <label className={labelClass}>{mode === 'POLITICAL' ? 'ID Number' : 'Employee ID'}</label>
+                <input type="text" className={inputClass} value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} />
+              </div>
+            </div>
 
             {/* Organization Mode Fields */}
             {mode === 'ORGANIZATION' && (
@@ -176,10 +166,6 @@ export default function RegisterPage() {
                 <div>
                   <label className={labelClass}>Organization</label>
                   <input type="text" className={inputClass} value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} />
-                </div>
-                <div>
-                  <label className={labelClass}>Office Address (for letterhead)</label>
-                  <textarea rows={2} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} />
                 </div>
               </>
             )}
@@ -211,10 +197,6 @@ export default function RegisterPage() {
                     <label className={labelClass}>State *</label>
                     <input type="text" required className={inputClass} value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
                   </div>
-                </div>
-                <div>
-                  <label className={labelClass}>Office Address (for letterhead)</label>
-                  <textarea rows={2} className={inputClass} value={formData.defaultAddress} onChange={(e) => setFormData({ ...formData, defaultAddress: e.target.value })} />
                 </div>
               </>
             )}
