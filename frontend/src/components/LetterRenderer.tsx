@@ -25,6 +25,11 @@ interface LetterRendererProps {
     designation?: string; department?: string; organization?: string; defaultAddress?: string;
     constituency?: string; state?: string; houseType?: string;
     signatureUrl?: string; sealUrl?: string;
+    parentUser?: {
+      name: string; designation?: string; department?: string; organization?: string; defaultAddress?: string;
+      constituency?: string; state?: string; houseType?: string;
+      email?: string; signatureUrl?: string; sealUrl?: string;
+    };
   } | null;
 }
 
@@ -37,15 +42,16 @@ const pageStyle: React.CSSProperties = {
 
 export default function LetterRenderer({ letter, user }: LetterRendererProps) {
   const slug = letter.templateSlug || 'general';
-  const senderName = user?.name ? `Shri ${user.name}` : 'Shri Member Name';
-  const designation = user?.designation || '';
-  const department = user?.department || '';
-  const organization = user?.organization || '';
-  const defaultAddress = user?.defaultAddress || '';
-  const senderEmail = user?.email || '';
-  const constituency = user?.constituency || '';
-  const state = user?.state || '';
-  const houseType = user?.houseType || '';
+  const effectiveUser = user?.parentUser || user;
+  const senderName = effectiveUser?.name ? `Shri ${effectiveUser.name}` : 'Shri Member Name';
+  const designation = effectiveUser?.designation || '';
+  const department = effectiveUser?.department || '';
+  const organization = effectiveUser?.organization || '';
+  const defaultAddress = effectiveUser?.defaultAddress || '';
+  const senderEmail = effectiveUser?.email || '';
+  const constituency = effectiveUser?.constituency || '';
+  const state = effectiveUser?.state || '';
+  const houseType = effectiveUser?.houseType || '';
   const parsedBody = letter.body ? letter.body.split('\n').filter(p => p.trim()) : [];
   const addressLines = defaultAddress ? defaultAddress.split(/[,\n]/).map(s => s.trim()).filter(Boolean) : [];
 
@@ -105,9 +111,13 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
             : <p style={{ color: '#aaa', fontStyle: 'italic' }}>[Letter body will appear here]</p>}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '30px' }}>
-          <div>
+          <div style={{ textAlign: 'left', fontSize: '14px' }}>
             <div style={{ fontSize: '14px' }}>Yours sincerely,</div>
-            <div style={{ height: '60px' }} />
+            <div style={{ height: '60px' }}>
+              {effectiveUser?.signatureUrl && (
+                <img src={effectiveUser.signatureUrl} alt="Signature" style={{ height: '60px', maxWidth: '200px', objectFit: 'contain' }} />
+              )}
+            </div>
             <div style={{ fontWeight: 'bold' }}>{senderName}</div>
             <div style={{ fontSize: '13px' }}>{designation}{organization ? `, ${organization}` : ''}</div>
           </div>
@@ -146,8 +156,12 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
         {/* Signature right-aligned */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
           <div style={{ textAlign: 'right', fontSize: '13px' }}>
-            <div style={{ height: '50px' }} />
-            <div style={{ fontWeight: 'bold' }}>({user?.name || ''})</div>
+            <div style={{ height: '50px' }}>
+              {effectiveUser?.signatureUrl && (
+                <img src={effectiveUser.signatureUrl} alt="Signature" style={{ height: '50px', maxWidth: '200px', objectFit: 'contain' }} />
+              )}
+            </div>
+            <div style={{ fontWeight: 'bold' }}>({effectiveUser?.name || ''})</div>
             <div>{designation}</div>
             {organization && <div>{organization}</div>}
             <QRPlaceholder />
@@ -174,7 +188,7 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
       <div style={pageStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #8B0000', paddingBottom: '10px', marginBottom: '20px' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#8B0000' }}>{user?.name || '[Name]'}</div>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#8B0000' }}>{effectiveUser?.name || '[Name]'}</div>
             <div style={{ fontSize: '13px', fontStyle: 'italic' }}>{houseType ? `Member of Parliament (${houseType})` : designation}</div>
             <div style={{ fontSize: '12px', color: '#333', marginTop: '4px' }}>{constituency ? `Constituency: ${constituency}` : ''}{state ? `, ${state}` : ''}</div>
           </div>
@@ -216,8 +230,12 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <div style={{ textAlign: 'right', fontSize: '13px' }}>
             <div>Yours faithfully,</div>
-            <div style={{ height: '50px' }} />
-            <div style={{ fontWeight: 'bold' }}>{user?.name || ''}</div>
+            <div style={{ height: '50px' }}>
+              {effectiveUser?.signatureUrl && (
+                <img src={effectiveUser.signatureUrl} alt="Signature" style={{ height: '50px', maxWidth: '200px', objectFit: 'contain' }} />
+              )}
+            </div>
+            <div style={{ fontWeight: 'bold' }}>{effectiveUser?.name || ''}</div>
             <div>{designation || (houseType ? `M.P. (${houseType})` : '')}</div>
             <QRPlaceholder />
           </div>

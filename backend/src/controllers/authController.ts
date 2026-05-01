@@ -32,6 +32,22 @@ const USER_SELECT_FIELDS = {
   operatorRole: true,
   parentUserId: true,
   createdAt: true,
+  parentUser: {
+    select: {
+      id: true,
+      name: true,
+      designation: true,
+      department: true,
+      organization: true,
+      defaultAddress: true,
+      constituency: true,
+      state: true,
+      houseType: true,
+      email: true,
+      signatureUrl: true,
+      sealUrl: true,
+    }
+  }
 };
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -106,6 +122,24 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           { email: email },
           { employeeId: email }
         ]
+      },
+      include: {
+        parentUser: {
+          select: {
+            id: true,
+            name: true,
+            designation: true,
+            department: true,
+            organization: true,
+            defaultAddress: true,
+            constituency: true,
+            state: true,
+            houseType: true,
+            email: true,
+            signatureUrl: true,
+            sealUrl: true,
+          }
+        }
       }
     });
     if (!user) {
@@ -155,6 +189,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         // Operator
         operatorRole: user.operatorRole,
         parentUserId: user.parentUserId,
+        parentUser: user.parentUser,
       },
     });
   } catch (error) {
