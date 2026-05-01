@@ -268,9 +268,20 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
     const io = req.app.get('io');
     const scanCount = await prisma.scanLog.count({ where: { letterId: letter.id } });
 
+    let notificationType: 'INFO' | 'WARNING' | 'CRITICAL' = 'INFO';
     let notificationMessage = `Your letter (Ref: ${letter.refNo}) was just scanned.`;
-    if (scanCount === 1) notificationMessage = `First scan detected: Your letter (Ref: ${letter.refNo}) has been read.`;
-    else if (scanCount > 5) notificationMessage = `High activity: Multiple scans (${scanCount}) detected for letter ${letter.refNo}.`;
+
+    if (scanCount === 1) {
+      notificationMessage = `First scan detected: Your letter (Ref: ${letter.refNo}) has been read.`;
+      notificationType = 'INFO';
+    } else {
+      notificationType = 'WARNING';
+    }
+    
+    if (scanCount > 5) {
+      notificationMessage = `High activity: Multiple scans (${scanCount}) detected for letter ${letter.refNo}.`;
+      notificationType = 'WARNING';
+    }
 
     const recentScans = await prisma.scanLog.findMany({
       where: { letterId: letter.id },
@@ -279,10 +290,16 @@ export const verifyLetter = async (req: Request & { app: any }, res: Response): 
     });
     if (recentScans.length > 1 && recentScans[0]!.location !== recentScans[1]!.location) {
       notificationMessage = `Suspicious activity: Scans from different locations for letter ${letter.refNo}.`;
+      notificationType = 'CRITICAL';
+    }
+
+    if (!isAuthentic) {
+      notificationMessage = `CRITICAL: Tampering detected for letter ${letter.refNo}! The digital signature does not match.`;
+      notificationType = 'CRITICAL';
     }
 
     const payload = {
-      type: scanCount === 1 ? 'INFO' : 'WARNING',
+      type: notificationType,
       message: notificationMessage,
       letterId: letter.id,
       timestamp: new Date(),
