@@ -116,7 +116,10 @@ export default function DashboardPage() {
       {/* Sidebar */}
       <aside className="w-72 bg-slate-900 text-white flex flex-col p-6 fixed h-full z-10 shadow-xl">
         <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl">V</div>
+          <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl relative">
+            V
+            <span className="absolute -top-1 -right-1 bg-white text-indigo-600 text-[8px] font-black px-1 rounded shadow-sm border border-indigo-100">v2.0.2</span>
+          </div>
           <h1 className="font-bold text-xl tracking-tight">DocVerify</h1>
         </div>
 
