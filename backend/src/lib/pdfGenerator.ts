@@ -305,11 +305,16 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
     .mplad-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #8B0000; padding-bottom:10px; margin-bottom:24px; }
     .mplad-left { flex:1; }
     .mplad-left .mp-name { font-size:20px; font-weight:bold; color:#8B0000; font-family:'Times New Roman',serif; margin-bottom:4px; }
-    .mplad-left .mp-designation { font-size:13px; font-style:italic; }
-    .mplad-left .mp-info { font-size:12px; line-height:1.5; margin-top:4px; color:#333; }
+    .mplad-left .mp-designation { font-size:13px; font-style:italic; color:#222; }
+    .mplad-left .mp-constituency { font-size:12px; line-height:1.8; margin-top:5px; color:#333; }
+    .mplad-left .mp-constituency .label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#888; display:block; line-height:1.2; }
+    .mplad-left .mp-constituency .value { font-size:12px; font-weight:600; color:#222; display:block; }
     .mplad-center { flex-shrink:0; text-align:center; padding:0 16px; }
     .mplad-center img { width:60px; }
-    .mplad-right { flex:1; text-align:right; font-size:12px; line-height:1.6; }
+    .mplad-right { flex:1; text-align:right; font-size:12px; line-height:1.8; color:#222; }
+    .mplad-right .addr-line:first-child { font-weight:600; font-size:12px; }
+    .mplad-right .addr-line { font-size:12px; color:#333; }
+    .mplad-right .addr-email { margin-top:5px; font-size:11px; color:#555; border-top:1px solid #ddd; padding-top:4px; }
     .works-table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
     .works-table th { border:1px solid #000; padding:6px 8px; background:#f5f5f5; font-weight:bold; text-align:center; }
     .works-table td { border:1px solid #000; padding:6px 8px; }
@@ -320,12 +325,15 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
       <div class="mplad-left">
         <div class="mp-name">${senderName}</div>
         <div class="mp-designation">${houseType ? `Member of Parliament (${houseType})` : designation}</div>
-        <div class="mp-info">${constituency ? `Constituency: ${constituency}` : ''}${state ? `, ${state}` : ''}</div>
+        <div class="mp-constituency">
+          ${constituency ? `<span class="label">Constituency</span><span class="value">${constituency}</span>` : ''}
+          ${state ? `<span class="label" style="margin-top:3px;">State</span><span class="value">${state}</span>` : ''}
+        </div>
       </div>
       <div class="mplad-center"><img src="${emblemBase64}" alt="Emblem"></div>
       <div class="mplad-right">
-        ${addressHtml}
-        ${senderEmail ? `e-mail: ${senderEmail}` : ''}
+        ${addressLines.map((l: string) => `<div class="addr-line">${l}</div>`).join('')}
+        ${senderEmail ? `<div class="addr-email">e-mail: ${senderEmail}</div>` : ''}
       </div>
     </div>
 
