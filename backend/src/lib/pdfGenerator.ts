@@ -107,6 +107,8 @@ function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64
   const designation = sender.designation || '';
   const department = sender.department || '';
   const organization = sender.organization || '';
+  const constituency = sender.constituency || '';
+  const state = sender.state || '';
   const defaultAddress = sender.defaultAddress || '';
   const senderEmail = sender.email || '';
 
@@ -140,8 +142,10 @@ function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64
             <div class="header-left">
               <div class="name">${senderName}</div>
               <div class="info-line">${designation}</div>
-              <div class="info-line">${department}</div>
-              <div class="info-line">${organization}</div>
+              ${constituency ? `<div class="info-line" style="font-size:12px;color:#444;">Constituency: ${constituency}</div>` : ''}
+              ${state ? `<div class="info-line" style="font-size:12px;color:#444;">State: ${state}</div>` : ''}
+              ${department ? `<div class="info-line">${department}</div>` : ''}
+              ${organization ? `<div class="info-line">${organization}</div>` : ''}
             </div>
             <div class="header-center"><img src="${emblemBase64}" alt="Emblem"></div>
             <div class="header-right"><div class="header-right-inner">${addressHtml}${emailLine}</div></div>

@@ -57,6 +57,8 @@ export default function LetterRenderer({ letter, user }: LetterRendererProps) {
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '3px' }}>{senderName}</div>
         {designation && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{designation}</div>}
+        {constituency && <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.4 }}>Constituency: {constituency}</div>}
+        {state && <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.4 }}>State: {state}</div>}
         {department && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{department}</div>}
         {organization && <div style={{ fontSize: '13px', fontStyle: 'italic', lineHeight: 1.4 }}>{organization}</div>}
       </div>
