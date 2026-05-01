@@ -94,8 +94,18 @@ const BASE_CSS = `
   .signature-space { height: 50px; }
   .signature-name { font-weight: bold; }
   .signature-title { font-size: 13px; }
-  .qr { width: 70px; text-align: center; font-size: 9px; font-family: Arial, sans-serif; color: #666; }
-  .qr img { width: 70px; height: 70px; display: block; margin: 0 auto 3px auto; }
+  .qr-fixed {
+    position: fixed;
+    bottom: 12mm;
+    right: 10mm;
+    width: 72px;
+    text-align: center;
+    font-size: 8px;
+    font-family: Arial, sans-serif;
+    color: #555;
+    z-index: 100;
+  }
+  .qr-fixed img { width: 72px; height: 72px; display: block; margin: 0 auto 2px auto; border: 1px solid #ddd; padding: 1px; }
   .copy-to-section { margin-top: 20px; font-size: 13px; line-height: 1.6; }
   .copy-to-section strong { font-weight: bold; }
 `;
@@ -177,8 +187,8 @@ function buildGeneralLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64
                 <div class="signature-title">${designation}${organization ? ', ' + organization : ''}</div>
               </div>
             </div>
-            <div class="qr"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>
           </div>
+          <div class="qr-fixed"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>
           ${copyToHtml}
         </div>
       </td></tr></tbody>
@@ -238,9 +248,9 @@ function buildDistrictOrderHTML(letter: any, qrCodeDataUrl: string, emblemBase64
         <div>${sender.designation || ''}</div>
         ${orgName ? `<div>${orgName}</div>` : ''}
         <div>Dated ${new Date(letter.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-        <div class="qr"><img src="${qrCodeDataUrl}" alt="QR" style="width:60px;height:60px;"><div style="font-size:8px;font-family:Arial;color:#666;">Scan to Verify</div></div>
       </div>
     </div>
+    <div class="qr-fixed"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>
 
     <div class="memo-section">
       Memo No. E ${letter.memoNo || letter.refNo} -A,<br>
@@ -358,12 +368,9 @@ function buildMPLADLetterHTML(letter: any, qrCodeDataUrl: string, emblemBase64: 
         <div style="height:55px;"></div>
         <div style="font-weight:bold;font-size:14px;">${senderName}</div>
         <div style="font-size:13px;">${designation || (houseType ? `M.P. (${houseType})` : '')}</div>
-        <div class="qr" style="margin-top:8px;margin-left:auto;">
-          <img src="${qrCodeDataUrl}" alt="QR" style="width:60px;height:60px;">
-          <div style="font-size:8px;font-family:Arial;color:#666;">Scan to Verify</div>
-        </div>
       </div>
     </div>
+    <div class="qr-fixed"><img src="${qrCodeDataUrl}" alt="QR"><div>Scan to Verify</div></div>
     ${copyToHtml}
   </body></html>`;
 }
